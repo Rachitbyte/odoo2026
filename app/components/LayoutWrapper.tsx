@@ -58,10 +58,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
   return (
     <div className="flex h-full w-full">
-      {/* Desktop Sidebar */}
-      <div className={`hidden md:block transition-all duration-300 ${isCollapsed ? "w-20" : "w-64"}`}>
-        <Sidebar isCollapsed={isCollapsed} onExpand={handleExpand} onCollapse={handleCollapse} />
-      </div>
+      {/* Desktop Sidebar (fixed, no spacer needed) */}
+      <Sidebar isCollapsed={isCollapsed} onExpand={handleExpand} onCollapse={handleCollapse} />
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
@@ -104,7 +102,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
         {/* Desktop Top Bar */}
         <TopNav />
 
-        <div className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-6">
+        <div className="flex-1 w-full px-4 md:px-6 py-6">
           {children}
         </div>
       </main>

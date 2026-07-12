@@ -10,6 +10,25 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const isLanding = pathname === "/";
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Load initial collapsed state from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar-collapsed");
+    if (saved !== null) {
+      setIsCollapsed(saved === "true");
+    }
+  }, []);
+
+  const handleExpand = () => {
+    setIsCollapsed(false);
+    localStorage.setItem("sidebar-collapsed", "false");
+  };
+
+  const handleCollapse = () => {
+    setIsCollapsed(true);
+    localStorage.setItem("sidebar-collapsed", "true");
+  };
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
@@ -39,8 +58,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   return (
     <div className="flex h-full w-full">
       {/* Desktop Sidebar */}
-      <div className="hidden md:block">
-        <Sidebar />
+      <div className={`hidden md:block transition-all duration-300 ${isCollapsed ? "w-20" : "w-64"}`}>
+        <Sidebar isCollapsed={isCollapsed} onExpand={handleExpand} onCollapse={handleCollapse} />
       </div>
 
       {/* Mobile Sidebar Overlay */}
@@ -57,11 +76,13 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <Sidebar onClose={() => setSidebarOpen(false)} />
+        <Sidebar onClose={() => setSidebarOpen(false)} isCollapsed={false} />
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 md:pl-64 min-h-screen relative flex flex-col bg-[#0D0D0D]">
+      <main className={`flex-1 min-h-screen relative flex flex-col bg-[#0D0D0D] transition-all duration-300 ${
+        isCollapsed ? "md:pl-20" : "md:pl-64"
+      }`}>
         {/* Mobile Top Bar */}
         <div className="md:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-[#111111] border-b border-[#2A2A2A]">
           <button

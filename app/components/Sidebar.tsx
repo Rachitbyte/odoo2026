@@ -33,9 +33,12 @@ interface NavItem {
 
 interface SidebarProps {
   onClose?: () => void;
+  isCollapsed?: boolean;
+  onExpand?: () => void;
+  onCollapse?: () => void;
 }
 
-function SidebarInner({ onClose }: SidebarProps) {
+function SidebarInner({ onClose, isCollapsed = false, onExpand, onCollapse }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentTab = searchParams.get("tab");
@@ -51,6 +54,15 @@ function SidebarInner({ onClose }: SidebarProps) {
 
   const toggle = (name: string) =>
     setOpenSections(prev => ({ ...prev, [name]: !prev[name] }));
+
+  const handleSectionClick = (itemName: string) => {
+    if (isCollapsed && onExpand) {
+      onExpand();
+      setOpenSections(prev => ({ ...prev, [itemName]: true }));
+    } else {
+      toggle(itemName);
+    }
+  };
 
   const navItems: NavItem[] = [
     {
@@ -141,18 +153,38 @@ function SidebarInner({ onClose }: SidebarProps) {
     },
   ];
 
+  const handleSidebarClick = () => {
+    if (isCollapsed && onExpand) {
+      onExpand();
+    }
+  };
+
+  const handleSidebarMouseLeave = () => {
+    if (!isCollapsed && onCollapse) {
+      onCollapse();
+    }
+  };
+
   return (
-    <aside className="w-64 bg-[#111111] text-white flex flex-col border-r border-[#2A2A2A] h-screen fixed top-0 left-0 z-30 font-sans">
+    <aside
+      onClick={handleSidebarClick}
+      onMouseLeave={handleSidebarMouseLeave}
+      className={`bg-[#111111] text-white flex flex-col border-r border-[#2A2A2A] h-screen fixed top-0 left-0 z-30 font-sans transition-all duration-300 ${isCollapsed ? "w-20 cursor-pointer" : "w-64"}`}
+    >
       {/* Brand */}
-      <div className="p-6 border-b border-[#2A2A2A] flex items-center justify-between">
+      <div className={`p-6 border-b border-[#2A2A2A] flex items-center relative transition-all duration-300 ${
+        isCollapsed ? "justify-center" : "justify-between"
+      }`}>
         <div className="flex items-center gap-3">
-          <Globe className="w-6 h-6 text-[#22C55E] animate-pulse" />
-          <div>
-            <h1 className="text-xl font-bold tracking-wider bg-gradient-to-r from-white to-[#9CA3AF] bg-clip-text text-transparent">
-              EcoSphere
-            </h1>
-            <p className="text-xs text-[#9CA3AF] font-medium tracking-tight">ESG Management</p>
-          </div>
+          <Globe className="w-6 h-6 text-[#22C55E] flex-shrink-0 animate-pulse" />
+          {!isCollapsed && (
+            <div className="transition-opacity duration-300">
+              <h1 className="text-xl font-bold tracking-wider bg-gradient-to-r from-white to-[#9CA3AF] bg-clip-text text-transparent">
+                EcoSphere
+              </h1>
+              <p className="text-xs text-[#9CA3AF] font-medium tracking-tight">ESG Management</p>
+            </div>
+          )}
         </div>
         {/* Mobile close button */}
         {onClose && (
@@ -179,8 +211,11 @@ function SidebarInner({ onClose }: SidebarProps) {
             return (
               <div key={item.name} className="space-y-1">
                 <button
-                  onClick={() => toggle(item.name)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group ${
+                  onClick={() => handleSectionClick(item.name)}
+                  title={isCollapsed ? item.name : undefined}
+                  className={`w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 group ${
+                    isCollapsed ? "justify-center p-3" : "justify-between px-4 py-3"
+                  } ${
                     isSectionActive
                       ? `${item.bgColor} ${item.color}`
                       : "text-[#9CA3AF] hover:text-white hover:bg-[#1A1A1A]"
@@ -192,15 +227,16 @@ function SidebarInner({ onClose }: SidebarProps) {
                         isSectionActive ? item.color : "text-[#9CA3AF] group-hover:text-white"
                       }`}
                     />
-                    <span>{item.name}</span>
+                    {!isCollapsed && <span>{item.name}</span>}
                   </div>
-                  {isOpen
-                    ? <ChevronDown className="w-4 h-4 text-[#9CA3AF]" />
-                    : <ChevronRight className="w-4 h-4 text-[#9CA3AF]" />
-                  }
+                  {!isCollapsed && (
+                    isOpen
+                      ? <ChevronDown className="w-4 h-4 text-[#9CA3AF]" />
+                      : <ChevronRight className="w-4 h-4 text-[#9CA3AF]" />
+                  )}
                 </button>
 
-                {isOpen && (
+                {!isCollapsed && isOpen && (
                   <div className="pl-9 space-y-0.5 mt-1 border-l border-[#2A2A2A] ml-6">
                     {item.subItems.map(sub => {
                       const isSubActive = sub.href.includes("?tab=")
@@ -235,7 +271,10 @@ function SidebarInner({ onClose }: SidebarProps) {
               key={item.name}
               href={item.href}
               onClick={onClose}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group ${
+              title={isCollapsed ? item.name : undefined}
+              className={`flex items-center rounded-lg text-sm font-medium transition-all duration-200 group ${
+                isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3"
+              } ${
                 isActive
                   ? `${item.bgColor} ${item.color}`
                   : "text-[#9CA3AF] hover:text-white hover:bg-[#1A1A1A]"
@@ -246,34 +285,36 @@ function SidebarInner({ onClose }: SidebarProps) {
                   isActive ? item.color : "text-[#9CA3AF] group-hover:text-white"
                 }`}
               />
-              <span>{item.name}</span>
+              {!isCollapsed && <span>{item.name}</span>}
             </Link>
           );
         })}
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-[#2A2A2A] bg-[#0E0E0E]">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#22C55E] to-[#3B82F6] flex items-center justify-center font-bold text-sm text-white shadow-lg">
+      <div className={`p-4 border-t border-[#2A2A2A] bg-[#0E0E0E] flex ${isCollapsed ? "justify-center" : "items-center"}`}>
+        <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3"}`}>
+          <div className="w-9 h-9 flex-shrink-0 rounded-full bg-gradient-to-tr from-[#22C55E] to-[#3B82F6] flex items-center justify-center font-bold text-sm text-white shadow-lg" title="EcoSphere Admin">
             ES
           </div>
-          <div className="overflow-hidden">
-            <p className="text-xs font-semibold truncate text-white">EcoSphere Admin</p>
-            <p className="text-[10px] text-[#9CA3AF] truncate">ESG Platform v2026</p>
-          </div>
+          {!isCollapsed && (
+            <div className="overflow-hidden">
+              <p className="text-xs font-semibold truncate text-white">EcoSphere Admin</p>
+              <p className="text-[10px] text-[#9CA3AF] truncate">ESG Platform v2026</p>
+            </div>
+          )}
         </div>
       </div>
     </aside>
   );
 }
 
-export default function Sidebar({ onClose }: SidebarProps) {
+export default function Sidebar({ onClose, isCollapsed, onExpand, onCollapse }: SidebarProps) {
   return (
     <Suspense fallback={
-      <aside className="w-64 bg-[#111111] border-r border-[#2A2A2A] h-screen fixed top-0 left-0 z-30" />
+      <aside className={`bg-[#111111] border-r border-[#2A2A2A] h-screen fixed top-0 left-0 z-30 transition-all duration-300 ${isCollapsed ? "w-20" : "w-64"}`} />
     }>
-      <SidebarInner onClose={onClose} />
+      <SidebarInner onClose={onClose} isCollapsed={isCollapsed} onExpand={onExpand} onCollapse={onCollapse} />
     </Suspense>
   );
 }

@@ -5,15 +5,14 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Plus, Pencil, Trash2, CheckCircle, Download,
-  Shield, FileText, ClipboardCheck, AlertTriangle, ExternalLink
+  Shield, FileText, ClipboardCheck, AlertTriangle, ExternalLink,
+  FileSpreadsheet
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose
 } from "@/components/ui/dialog";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { FileText, FileSpreadsheet } from "lucide-react";
-
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface Department { id: number; name: string; }
 interface ESGPolicy {

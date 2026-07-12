@@ -163,10 +163,9 @@ function SidebarInner() {
                 {isOpen && (
                   <div className="pl-9 space-y-0.5 mt-1 border-l border-[#2A2A2A] ml-6">
                     {item.subItems.map(sub => {
-                      const isSubActive =
-                        (pathname === sub.href && !sub.href.includes("?")) ||
-                        (sub.href.includes("?tab=") && currentTab === sub.href.split("?tab=")[1]) ||
-                        (!sub.href.includes("?") && pathname === sub.href && !currentTab);
+                      const isSubActive = sub.href.includes("?tab=")
+                        ? currentTab === sub.href.split("?tab=")[1] && pathname === sub.href.split("?")[0]
+                        : pathname === sub.href && !currentTab;
 
                       return (
                         <Link

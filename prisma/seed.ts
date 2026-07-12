@@ -116,8 +116,10 @@ async function main() {
   await prisma.challengeParticipation.create({ data: { challengeId: challenge3.id, employeeName: "Elena Rodriguez", progress: 100, approvalStatus: "Pending", xpAwarded: 0 }});
 
   console.log("Seeding Badges and Rewards...");
-  await prisma.badge.create({ data: { name: "Green Pioneer", description: "Completed 5 Environmental challenges.", unlockRule: "complete_5_env", icon: "🌱" }});
-  await prisma.badge.create({ data: { name: "Community Leader", description: "Earned 500 CSR Points.", unlockRule: "earn_500_csr", icon: "🌟" }});
+  await prisma.badge.create({ data: { name: "Green Beginner", description: "Started your sustainability journey.", unlockRule: "start_journey", icon: "🌱" }});
+  await prisma.badge.create({ data: { name: "Carbon Saver", description: "Logged 5 carbon-reducing activities.", unlockRule: "save_carbon_5", icon: "♻️" }});
+  await prisma.badge.create({ data: { name: "Sustainability Champion", description: "Completed 10 environmental challenges.", unlockRule: "complete_10_env", icon: "🌍" }});
+  await prisma.badge.create({ data: { name: "Team Player", description: "Collaborated on a team ESG goal.", unlockRule: "team_goal", icon: "⭐" }});
 
   await prisma.reward.create({ data: { name: "$50 Amazon Gift Card", description: "Digital voucher for Amazon.com", pointsRequired: 500, stock: 20 }});
   await prisma.reward.create({ data: { name: "Extra Vacation Day", description: "One paid day off", pointsRequired: 1500, stock: 5 }});

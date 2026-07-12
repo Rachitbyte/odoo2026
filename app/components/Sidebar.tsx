@@ -175,17 +175,17 @@ function SidebarInner({ onClose, isCollapsed = false, onExpand, onCollapse }: Si
       <div className={`p-6 border-b border-[#2A2A2A] flex items-center relative transition-all duration-300 ${
         isCollapsed ? "justify-center" : "justify-between"
       }`}>
-        <div className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <Globe className="w-6 h-6 text-[#22C55E] flex-shrink-0 animate-pulse" />
           {!isCollapsed && (
-            <div className="transition-opacity duration-300">
+            <div className="transition-opacity duration-300 text-left">
               <h1 className="text-xl font-bold tracking-wider bg-gradient-to-r from-white to-[#9CA3AF] bg-clip-text text-transparent">
                 EcoSphere
               </h1>
               <p className="text-xs text-[#9CA3AF] font-medium tracking-tight">ESG Management</p>
             </div>
           )}
-        </div>
+        </Link>
         {/* Mobile close button */}
         {onClose && (
           <button

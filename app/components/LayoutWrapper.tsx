@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import Sidebar from "@/app/components/Sidebar";
 import TopNav from "@/app/components/TopNav";
 import { Menu, X } from "lucide-react";
+import Link from "next/link";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -92,12 +93,12 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="w-6 h-6 bg-[#22C55E] rounded flex items-center justify-center font-bold text-black text-xs shadow-[0_0_10px_rgba(34,197,94,0.3)]">
               E
             </div>
             <span className="font-bold text-sm tracking-tight text-white">EcoSphere</span>
-          </div>
+          </Link>
         </div>
 
         {/* Desktop Top Bar */}

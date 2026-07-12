@@ -66,8 +66,8 @@ function SidebarInner({ onClose }: SidebarProps) {
       subItems: [
         { name: "Emission Factors",    href: "/environmental/emission-factors" },
         { name: "Product ESG Profile", href: "/environmental/product-esg" },
-        { name: "Environmental Goals", href: "/environmental/goals" },
         { name: "Carbon Transactions", href: "/environmental/carbon-transactions" },
+        { name: "Environmental Goals", href: "/environmental/goals" },
       ],
     },
     {

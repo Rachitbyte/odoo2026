@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Search, Loader2, ChevronDown, Eye, Edit2, Trash2 } from "lucide-react";
+import { Search, Loader2, ChevronDown, Eye, Edit2, Trash2, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -176,18 +176,34 @@ export default function CarbonTransactionsPage() {
           >
             + Log Transaction
           </Button>
+          <Button
+            onClick={handleView}
+            disabled={!selectedRowId}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 h-10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            View
+          </Button>
           <div className="relative">
             <Button
-              variant="outline"
               onClick={() => setExportOpen(!exportOpen)}
-              className="bg-[#9CA3AF] hover:bg-[#6B7280] text-black border-none font-medium px-6 py-2 h-10 rounded-lg flex items-center gap-2"
+              className={`border font-medium px-6 py-2 h-10 rounded-lg flex items-center gap-2 cursor-pointer transition-all ${
+                exportOpen
+                  ? "bg-[#2A2A2A] border-[#3A3A3A] text-white"
+                  : "bg-[#1A1A1A] border-[#2A2A2A] text-[#9CA3AF] hover:bg-[#2A2A2A] hover:text-white hover:border-[#3A3A3A]"
+              }`}
             >
-              Export <ChevronDown className="w-4 h-4 opacity-50" />
+              <Download className="w-4 h-4" /> Export ▼
             </Button>
             {exportOpen && (
-              <div className="absolute left-0 mt-2 w-40 bg-[#111111] border border-[#2A2A2A] rounded-md shadow-lg z-10 py-1">
-                <button onClick={() => { handleExportCSV(); setExportOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#2A2A2A]">Export CSV</button>
-                <button onClick={() => { handleExportPDF(); setExportOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#2A2A2A]">Export PDF</button>
+              <div className="absolute left-0 mt-2 w-48 bg-[#1A1A1A] border border-[#2A2A2A] rounded-md shadow-xl z-50 overflow-hidden">
+                <div className="py-1">
+                  <button onClick={() => { handleExportCSV(); setExportOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm text-[#9CA3AF] hover:bg-[#2A2A2A] hover:text-white flex items-center gap-2 transition-colors">
+                    <FileSpreadsheet className="w-4 h-4 text-green-400" /> Export as CSV
+                  </button>
+                  <button onClick={() => { handleExportPDF(); setExportOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm text-[#9CA3AF] hover:bg-[#2A2A2A] hover:text-white flex items-center gap-2 transition-colors">
+                    <FileText className="w-4 h-4 text-red-400" /> Export as PDF
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -264,10 +280,8 @@ export default function CarbonTransactionsPage() {
         </Table>
       </div>
 
-      <div className="flex items-center gap-3 text-xs text-[#9CA3AF] mt-2 px-1">
-        <button onClick={handleView} className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Eye className="w-3 h-3 text-[#F97316]" /> View</button>
-        <span>•</span>
-        <span>Transactions are immutable and cannot be edited or deleted.</span>
+      <div className="text-xs text-[#9CA3AF] mt-2 px-1">
+        Transactions are immutable and cannot be edited or deleted.
       </div>
 
       {/* View Modal */}
@@ -423,3 +437,4 @@ export default function CarbonTransactionsPage() {
     </div>
   );
 }
+

@@ -4,56 +4,65 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const startDateStr = searchParams.get("startDate");
-    const endDateStr = searchParams.get("endDate");
-    const deptIdStr = searchParams.get("deptId");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const deptId = searchParams.get("deptId");
     const module = searchParams.get("module");
     const employeeName = searchParams.get("employeeName");
-    const categoryIdStr = searchParams.get("categoryId");
+    const categoryId = searchParams.get("categoryId");
 
-    const startDate = startDateStr ? new Date(startDateStr) : null;
-    const endDate = endDateStr ? new Date(endDateStr) : null;
-    const deptId = deptIdStr ? Number(deptIdStr) : null;
-    const categoryId = categoryIdStr ? Number(categoryIdStr) : null;
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate + "T23:59:59") : undefined;
+    const deptIdNum = deptId ? Number(deptId) : undefined;
+    const catIdNum = categoryId ? Number(categoryId) : undefined;
 
     const results: any[] = [];
 
-    // --- 1. ENVIRONMENTAL ---
+    // ── Environmental: Carbon Transactions ──────────────────────────
     if (!module || module === "Environmental") {
-      // Carbon Transactions
       const txns = await prisma.carbonTransaction.findMany({
         where: {
-          deptId: deptId || undefined,
-          transactionDate: {
-            gte: startDate || undefined,
-            lte: endDate || undefined,
-          },
+          ...(deptIdNum ? { deptId: deptIdNum } : {}),
+          ...(start || end
+            ? {
+                transactionDate: {
+                  ...(start ? { gte: start } : {}),
+                  ...(end ? { lte: end } : {}),
+                },
+              }
+            : {}),
         },
         include: { dept: true, emissionFactor: true },
+        orderBy: { transactionDate: "desc" },
       });
 
       txns.forEach((t: any) => {
         results.push({
-          id: `env-txn-${t.id}`,
+          id: `env-ct-${t.id}`,
           date: t.transactionDate || t.createdAt,
           module: "Environmental",
-          departmentName: t.dept?.name || "N/A",
-          title: `Emissions logged: ${t.source}`,
-          details: `${t.quantity} unit(s) via ${t.emissionFactor?.name} (${t.emissionFactor?.factorValue} ${t.emissionFactor?.unit})`,
-          status: `${t.co2Amount} kg CO2`,
+          departmentName: t.dept?.name || "—",
+          title: `Carbon Transaction: ${t.source}`,
+          details: `Factor: ${t.emissionFactor?.name || "—"} | Qty: ${t.quantity} | CO2: ${t.co2Amount} kg`,
+          status: `${t.co2Amount} kg CO₂`,
         });
       });
 
-      // Goals
+      // Environmental Goals
       const goals = await prisma.environmentalGoal.findMany({
         where: {
-          deptId: deptId || undefined,
-          createdAt: {
-            gte: startDate || undefined,
-            lte: endDate || undefined,
-          },
+          ...(deptIdNum ? { deptId: deptIdNum } : {}),
+          ...(start || end
+            ? {
+                createdAt: {
+                  ...(start ? { gte: start } : {}),
+                  ...(end ? { lte: end } : {}),
+                },
+              }
+            : {}),
         },
         include: { dept: true },
+        orderBy: { createdAt: "desc" },
       });
 
       goals.forEach((g: any) => {
@@ -61,151 +70,215 @@ export async function GET(request: NextRequest) {
           id: `env-goal-${g.id}`,
           date: g.createdAt,
           module: "Environmental",
-          departmentName: g.dept?.name || "N/A",
+          departmentName: g.dept?.name || "—",
           title: `Goal: ${g.name}`,
-          details: `Target: ${g.targetCo2} kg CO2 | Current: ${g.currentCo2} kg CO2`,
+          details: `Target: ${g.targetCo2} kg | Current: ${g.currentCo2} kg | Deadline: ${new Date(g.deadline).toLocaleDateString()}`,
           status: g.status,
         });
       });
     }
 
-    // --- 2. SOCIAL ---
+    // ── Social: CSR Activities ───────────────────────────────────────
     if (!module || module === "Social") {
-      // CSR activities
       const activities = await prisma.cSRActivity.findMany({
         where: {
-          deptId: deptId || undefined,
-          categoryId: categoryId || undefined,
-          date: {
-            gte: startDate || undefined,
-            lte: endDate || undefined,
-          },
+          ...(deptIdNum ? { deptId: deptIdNum } : {}),
+          ...(catIdNum ? { categoryId: catIdNum } : {}),
+          ...(start || end
+            ? {
+                date: {
+                  ...(start ? { gte: start } : {}),
+                  ...(end ? { lte: end } : {}),
+                },
+              }
+            : {}),
         },
         include: { dept: true, category: true },
+        orderBy: { date: "desc" },
       });
 
-      activities.forEach((act: any) => {
+      activities.forEach((a: any) => {
         results.push({
-          id: `soc-act-${act.id}`,
-          date: act.date,
+          id: `social-act-${a.id}`,
+          date: a.date,
           module: "Social",
-          departmentName: act.dept?.name || "N/A",
-          title: `CSR Activity: ${act.title}`,
-          details: `Category: ${act.category?.name || "N/A"} | ${act.description || ""}`,
-          status: act.open ? "Open" : "Closed",
+          departmentName: a.dept?.name || "—",
+          title: `CSR Activity: ${a.title}`,
+          details: `Category: ${a.category?.name || "—"} | ${a.description || "No description"}`,
+          status: a.open ? "Open" : "Closed",
         });
       });
 
-      // Employee Participation
-      const participations = await prisma.employeeParticipation.findMany({
+      // Social: Employee Participation
+      const parts = await prisma.employeeParticipation.findMany({
         where: {
-          employeeName: employeeName ? { contains: employeeName, mode: "insensitive" } : undefined,
-          createdAt: {
-            gte: startDate || undefined,
-            lte: endDate || undefined,
-          },
+          ...(employeeName
+            ? { employeeName: { contains: employeeName, mode: "insensitive" as const } }
+            : {}),
+          ...(start || end
+            ? {
+                createdAt: {
+                  ...(start ? { gte: start } : {}),
+                  ...(end ? { lte: end } : {}),
+                },
+              }
+            : {}),
+          ...(deptIdNum
+            ? { activity: { deptId: deptIdNum } }
+            : {}),
         },
         include: { activity: { include: { dept: true } } },
+        orderBy: { createdAt: "desc" },
       });
 
-      participations.forEach((p: any) => {
-        if (deptId && p.activity?.deptId !== deptId) return;
+      parts.forEach((p: any) => {
         results.push({
-          id: `soc-part-${p.id}`,
-          date: p.completionDate || p.createdAt,
+          id: `social-part-${p.id}`,
+          date: p.createdAt,
           module: "Social",
-          departmentName: p.activity?.dept?.name || "N/A",
-          title: `${p.employeeName} - CSR Participation`,
-          details: `Activity: "${p.activity?.title}" | Proof: ${p.proofUrl || "None"}`,
-          status: `${p.approvalStatus} (+${p.pointsEarned} pts)`,
+          departmentName: p.activity?.dept?.name || "—",
+          title: `Participation: ${p.employeeName}`,
+          details: `Activity: ${p.activity?.title || "—"} | Points: ${p.pointsEarned}`,
+          status: p.approvalStatus,
         });
       });
     }
 
-    // --- 3. GOVERNANCE ---
+    // ── Governance: Audits ───────────────────────────────────────────
     if (!module || module === "Governance") {
-      // Audits
       const audits = await prisma.audit.findMany({
         where: {
-          deptId: deptId || undefined,
-          date: {
-            gte: startDate || undefined,
-            lte: endDate || undefined,
-          },
+          ...(deptIdNum ? { deptId: deptIdNum } : {}),
+          ...(start || end
+            ? {
+                date: {
+                  ...(start ? { gte: start } : {}),
+                  ...(end ? { lte: end } : {}),
+                },
+              }
+            : {}),
         },
         include: { dept: true },
+        orderBy: { date: "desc" },
       });
 
       audits.forEach((a: any) => {
         results.push({
-          id: `gov-aud-${a.id}`,
+          id: `gov-audit-${a.id}`,
           date: a.date,
           module: "Governance",
-          departmentName: a.dept?.name || "N/A",
+          departmentName: a.dept?.name || "—",
           title: `Audit: ${a.title}`,
-          details: `Auditor: ${a.auditor} | Findings: ${a.findings || "None"}`,
+          details: `Auditor: ${a.auditor} | ${a.findings ? a.findings.slice(0, 80) : "No findings"}`,
           status: a.status,
         });
       });
 
-      // Compliance Issues
-      const compliance = await prisma.complianceIssue.findMany({
+      // Governance: Compliance Issues
+      const issues = await prisma.complianceIssue.findMany({
         where: {
-          owner: employeeName ? { contains: employeeName, mode: "insensitive" } : undefined,
-          createdAt: {
-            gte: startDate || undefined,
-            lte: endDate || undefined,
-          },
+          ...(start || end
+            ? {
+                createdAt: {
+                  ...(start ? { gte: start } : {}),
+                  ...(end ? { lte: end } : {}),
+                },
+              }
+            : {}),
+          ...(deptIdNum
+            ? { audit: { deptId: deptIdNum } }
+            : {}),
         },
         include: { audit: { include: { dept: true } } },
+        orderBy: { dueDate: "asc" },
       });
 
-      compliance.forEach((c: any) => {
-        if (deptId && c.audit?.deptId !== deptId) return;
+      issues.forEach((i: any) => {
         results.push({
-          id: `gov-comp-${c.id}`,
-          date: c.dueDate || c.createdAt,
+          id: `gov-issue-${i.id}`,
+          date: i.createdAt,
           module: "Governance",
-          departmentName: c.audit?.dept?.name || "N/A",
-          title: `Compliance Issue: ${c.description}`,
-          details: `Severity: ${c.severity} | Owner: ${c.owner} | Audit Ref: "${c.audit?.title}"`,
-          status: c.status,
+          departmentName: i.audit?.dept?.name || "—",
+          title: `Compliance Issue: ${i.description.slice(0, 50)}`,
+          details: `Severity: ${i.severity} | Owner: ${i.owner} | Due: ${new Date(i.dueDate).toLocaleDateString()}`,
+          status: i.status,
+        });
+      });
+
+      // Governance: Policies
+      const policies = await prisma.eSGPolicy.findMany({
+        where: {
+          ...(deptIdNum ? { deptId: deptIdNum } : {}),
+          ...(start || end
+            ? {
+                effectiveDate: {
+                  ...(start ? { gte: start } : {}),
+                  ...(end ? { lte: end } : {}),
+                },
+              }
+            : {}),
+        },
+        include: { dept: true },
+        orderBy: { effectiveDate: "desc" },
+      });
+
+      policies.forEach((p: any) => {
+        results.push({
+          id: `gov-policy-${p.id}`,
+          date: p.effectiveDate,
+          module: "Governance",
+          departmentName: p.dept?.name || "All Departments",
+          title: `Policy: ${p.title}`,
+          details: `Version: ${p.version} | ${p.description.slice(0, 60)}`,
+          status: p.status,
         });
       });
     }
 
-    // --- 4. GAMIFICATION ---
+    // ── Gamification: Challenge Participations ───────────────────────
     if (!module || module === "Gamification") {
-      // Challenge Participation
-      const cp = await prisma.challengeParticipation.findMany({
+      const challengeParts = await prisma.challengeParticipation.findMany({
         where: {
-          employeeName: employeeName ? { contains: employeeName, mode: "insensitive" } : undefined,
-          createdAt: {
-            gte: startDate || undefined,
-            lte: endDate || undefined,
-          },
+          ...(employeeName
+            ? { employeeName: { contains: employeeName, mode: "insensitive" as const } }
+            : {}),
+          ...(start || end
+            ? {
+                createdAt: {
+                  ...(start ? { gte: start } : {}),
+                  ...(end ? { lte: end } : {}),
+                },
+              }
+            : {}),
+          ...(catIdNum
+            ? { challenge: { categoryId: catIdNum } }
+            : {}),
         },
         include: { challenge: { include: { category: true } } },
+        orderBy: { createdAt: "desc" },
       });
 
-      cp.forEach((p: any) => {
+      challengeParts.forEach((cp: any) => {
         results.push({
-          id: `gam-part-${p.id}`,
-          date: p.createdAt,
+          id: `gam-cp-${cp.id}`,
+          date: cp.createdAt,
           module: "Gamification",
-          departmentName: "N/A",
-          title: `${p.employeeName} - Challenge Participation`,
-          details: `Challenge: "${p.challenge?.title}" | Progress: ${p.progress}%`,
-          status: `${p.approvalStatus} (+${p.xpAwarded} XP)`,
+          departmentName: "—",
+          title: `Challenge: ${cp.challenge?.title || "—"}`,
+          details: `Employee: ${cp.employeeName} | XP: ${cp.xpAwarded} | Progress: ${cp.progress}%`,
+          status: cp.approvalStatus,
         });
       });
     }
 
-    // Sort results by date descending
-    results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Sort combined results by date descending
+    results.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
 
     return Response.json(results);
   } catch (error: any) {
+    console.error("Custom report error:", error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 }

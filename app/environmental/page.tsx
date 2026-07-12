@@ -19,16 +19,16 @@ export default function EnvironmentalOverviewPage() {
       icon: <Box className="w-8 h-8 text-blue-400" />,
     },
     {
-      title: "Environmental Goals",
-      description: "Set and monitor CO2 reduction targets across departments.",
-      href: "/environmental/goals",
-      icon: <Target className="w-8 h-8 text-orange-400" />,
-    },
-    {
       title: "Carbon Transactions",
       description: "Log and review carbon-emitting activities in an immutable ledger.",
       href: "/environmental/carbon-transactions",
       icon: <List className="w-8 h-8 text-purple-400" />,
+    },
+    {
+      title: "Environmental Goals",
+      description: "Set and monitor CO2 reduction targets across departments.",
+      href: "/environmental/goals",
+      icon: <Target className="w-8 h-8 text-orange-400" />,
     }
   ];
 

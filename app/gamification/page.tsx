@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Trophy,
@@ -96,9 +97,17 @@ interface DeptRank {
   totalScore: number;
 }
 
-export default function GamificationPage() {
-  const [activeTab, setActiveTab] = useState("challenges");
+function GamificationPageInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tabParam = searchParams.get("tab") || "challenges";
+
+  const [activeTab, setActiveTab] = useState(tabParam);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (tabParam) setActiveTab(tabParam);
+  }, [tabParam]);
 
   // Categories for dropdowns
   const [challengeCategories, setChallengeCategories] = useState<Array<{ id: number; name: string }>>([]);
@@ -416,12 +425,15 @@ export default function GamificationPage() {
     return c.status === challengeFilter;
   });
 
-  // Mock-aligned combined leaderboard to match layout design
-  const combinedLeaderboard = [
-    { rank: 1, name: "Manufacturing Dept", type: "dept", score: "4,820 XP" },
-    { rank: 2, name: "Aditi Rao", type: "employee", score: "3,910 XP" },
-    { rank: 3, name: "Corporate Dept", type: "dept", score: "3,505 XP" }
-  ];
+  // Dynamically generate the leaderboard widget from fetched data
+  const combinedLeaderboard = employeeLeaderboard
+    .slice(0, 5) // Show top 5 employees in the widget
+    .map((emp, index) => ({
+      rank: index + 1,
+      name: emp.employeeName,
+      type: "employee",
+      score: `${emp.totalXP} XP`,
+    }));
 
   return (
     <div className="space-y-6">
@@ -435,7 +447,17 @@ export default function GamificationPage() {
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs 
+        value={activeTab} 
+        onValueChange={(val) => {
+          setActiveTab(val);
+          const params = new URLSearchParams(searchParams.toString());
+          if (val === "challenges") params.delete("tab");
+          else params.set("tab", val);
+          router.push(`?${params.toString()}`, { scroll: false });
+        }} 
+        className="w-full"
+      >
         {/* Mockup Tab buttons style */}
         <TabsList className="bg-[#141414] border border-[#262626] p-1 gap-2 rounded-xl mb-6">
           <TabsTrigger
@@ -1476,5 +1498,13 @@ export default function GamificationPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function GamificationPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-500">Loading Gamification...</div>}>
+      <GamificationPageInner />
+    </Suspense>
   );
 }

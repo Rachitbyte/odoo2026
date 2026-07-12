@@ -4,14 +4,14 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
-  Users, CalendarDays, Plus, Pencil, Trash2,
-  CheckCircle, XCircle, ExternalLink, AlertCircle, TrendingUp
+  Plus, Pencil, Trash2, CheckCircle, XCircle,
+  ExternalLink, UserPlus, Users, BarChart3, TrendingUp, Award
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose
 } from "@/components/ui/dialog";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ─────────────────────────────────────────────────────────────────────
 interface Department { id: number; name: string; }
 interface Category   { id: number; name: string; }
 interface CSRActivity {
@@ -28,35 +28,41 @@ interface EmployeeParticipation {
   pointsEarned: number; completionDate: string | null;
   createdAt: string;
 }
+interface ESGConfig {
+  requireCsrEvidence: boolean;
+}
 
-// ─── Shared Form Styles ────────────────────────────────────────────────────────
 const INPUT = "w-full bg-[#0D0D0D] border border-[#2A2A2A] rounded-md px-3 py-2 text-white text-sm focus:outline-none focus:border-[#F97316] transition";
 const LABEL = "block text-xs font-medium mb-1 text-[#9CA3AF] uppercase tracking-wider";
 
-// ─── Pill Badge ────────────────────────────────────────────────────────────────
-function StatusPill({ label, color }: { label: string; color: string }) {
-  const map: Record<string, string> = {
-    orange: "bg-[#F97316]/15 text-[#F97316]",
-    green:  "bg-green-900/30 text-green-400",
-    red:    "bg-red-900/30 text-red-400",
-    yellow: "bg-yellow-900/30 text-yellow-400",
-    gray:   "bg-[#2A2A2A] text-[#9CA3AF]",
-  };
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${map[color] ?? map.gray}`}>
-      {label}
-    </span>
-  );
-}
+// ─── Category emoji map ────────────────────────────────────────────────────────
+const categoryEmoji: Record<string, string> = {
+  "Environment":    "🌱",
+  "Community":      "🤝",
+  "Health":         "🩺",
+  "Education":      "📚",
+  "Blood Donation": "🩸",
+  "Tree Plantation":"🌳",
+  "Beach Cleanup":  "🏖️",
+  "ESG Workshop":   "📊",
+  "Sports":         "⚽",
+  "Volunteering":   "🙌",
+  "default":        "🌍",
+};
+const getEmoji = (name: string) =>
+  categoryEmoji[name] ?? Object.entries(categoryEmoji).find(([k]) => name.toLowerCase().includes(k.toLowerCase()))?.[1] ?? "🌍";
 
-// ─── Stat Card ─────────────────────────────────────────────────────────────────
-function StatCard({ label, value, sub, color }: { label: string; value: number | string; sub?: string; color: string }) {
+// ─── Approval status pill ──────────────────────────────────────────────────────
+function ApprovalPill({ status }: { status: string }) {
+  const cfg = {
+    Pending:  "bg-orange-500/20 text-orange-400 border border-orange-500/40",
+    Approved: "bg-green-500/20  text-green-400  border border-green-500/40",
+    Rejected: "bg-red-500/20    text-red-400    border border-red-500/40",
+  }[status] ?? "bg-[#2A2A2A] text-[#9CA3AF]";
   return (
-    <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 flex flex-col gap-1">
-      <p className="text-xs text-[#9CA3AF] uppercase tracking-wider">{label}</p>
-      <p className={`text-3xl font-bold ${color}`}>{value}</p>
-      {sub && <p className="text-xs text-[#9CA3AF]">{sub}</p>}
-    </div>
+    <span className={`inline-flex items-center px-3 py-1 rounded text-xs font-semibold ${cfg}`}>
+      {status}
+    </span>
   );
 }
 
@@ -66,8 +72,8 @@ function ConfirmDelete({ onConfirm, label }: { onConfirm: () => void; label: str
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <button onClick={() => setOpen(true)} title="Delete"
-        className="p-1.5 rounded hover:bg-red-900/30 text-[#9CA3AF] hover:text-red-400 transition">
-        <Trash2 className="w-4 h-4" />
+        className="p-1 rounded hover:bg-red-900/30 text-[#6B7280] hover:text-red-400 transition">
+        <Trash2 className="w-3.5 h-3.5" />
       </button>
       <DialogContent className="!bg-[#1A1A1A] !border-[#2A2A2A] text-white max-w-sm">
         <DialogHeader>
@@ -88,31 +94,39 @@ function ConfirmDelete({ onConfirm, label }: { onConfirm: () => void; label: str
   );
 }
 
-// ─── Inner (needs useSearchParams) ───────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
+// INNER PAGE
+// ──────────────────────────────────────────────────────────────────────────────
 function SocialPageInner() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
 
   const [mainTab, setMainTab] = useState<"activities" | "participation" | "diversity">(
     tabParam === "participation" ? "participation"
-    : tabParam === "diversity"   ? "diversity"
+    : tabParam === "diversity"  ? "diversity"
     : "activities"
   );
-  const [partTab, setPartTab] = useState<"all" | "queue">("all");
 
   const [activities, setActivities]         = useState<CSRActivity[]>([]);
   const [participations, setParticipations] = useState<EmployeeParticipation[]>([]);
   const [departments, setDepartments]       = useState<Department[]>([]);
   const [categories, setCategories]         = useState<Category[]>([]);
+  const [esgConfig, setEsgConfig]           = useState<ESGConfig | null>(null);
   const [loading, setLoading]               = useState(true);
 
-  // Activity form
+  // ── Activity CRUD modal ──
   const [actOpen, setActOpen]   = useState(false);
   const [editAct, setEditAct]   = useState<CSRActivity | null>(null);
   const EMPTY_ACT = { title: "", categoryId: "", description: "", deptId: "", date: "", open: "true" };
   const [actForm, setActForm]   = useState<typeof EMPTY_ACT>(EMPTY_ACT);
 
-  // Participation form
+  // ── Join (log participation) modal ──
+  const [joinOpen, setJoinOpen]         = useState(false);
+  const [joinActivity, setJoinActivity] = useState<CSRActivity | null>(null);
+  const EMPTY_JOIN = { employeeName: "", proofUrl: "", completionDate: "" };
+  const [joinForm, setJoinForm]         = useState<typeof EMPTY_JOIN>(EMPTY_JOIN);
+
+  // ── New Participation modal (from Participation tab) ──
   const [partOpen, setPartOpen] = useState(false);
   const EMPTY_PART = { employeeName: "", activityId: "", proofUrl: "", completionDate: "" };
   const [partForm, setPartForm] = useState<typeof EMPTY_PART>(EMPTY_PART);
@@ -122,7 +136,6 @@ function SocialPageInner() {
     const r = await fetch("/api/social/activities");
     if (r.ok) setActivities(await r.json());
   }, []);
-
   const loadParticipations = useCallback(async () => {
     const r = await fetch("/api/social/participation");
     if (r.ok) setParticipations(await r.json());
@@ -131,12 +144,14 @@ function SocialPageInner() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [deptRes, catRes] = await Promise.all([
+      const [deptRes, catRes, cfgRes] = await Promise.all([
         fetch("/api/departments"),
         fetch("/api/categories?type=CSR_ACTIVITY"),
+        fetch("/api/esg-config"),
       ]);
       if (deptRes.ok) setDepartments(await deptRes.json());
       if (catRes.ok)  setCategories(await catRes.json());
+      if (cfgRes.ok)  setEsgConfig(await cfgRes.json());
       await Promise.all([loadActivities(), loadParticipations()]);
       setLoading(false);
     })();
@@ -146,28 +161,19 @@ function SocialPageInner() {
   const openNewActivity = () => { setEditAct(null); setActForm(EMPTY_ACT); setActOpen(true); };
   const openEditActivity = (act: CSRActivity) => {
     setEditAct(act);
-    setActForm({
-      title: act.title, categoryId: String(act.categoryId),
+    setActForm({ title: act.title, categoryId: String(act.categoryId),
       description: act.description ?? "", deptId: String(act.deptId),
-      date: act.date.split("T")[0], open: act.open ? "true" : "false",
-    });
+      date: act.date.split("T")[0], open: act.open ? "true" : "false" });
     setActOpen(true);
   };
   const submitActivity = async (e: React.FormEvent) => {
     e.preventDefault();
     const url    = editAct ? `/api/social/activities/${editAct.id}` : "/api/social/activities";
     const method = editAct ? "PUT" : "POST";
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...actForm, open: actForm.open === "true" }),
-    });
-    if (res.ok) {
-      toast.success(editAct ? "Activity updated!" : "Activity created!");
-      setActOpen(false); loadActivities();
-    } else {
-      const err = await res.json(); toast.error(err.error ?? "Failed to save");
-    }
+    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...actForm, open: actForm.open === "true" }) });
+    if (res.ok) { toast.success(editAct ? "Activity updated!" : "Activity created!"); setActOpen(false); loadActivities(); }
+    else { const err = await res.json(); toast.error(err.error ?? "Failed to save"); }
   };
   const deleteActivity = async (id: number) => {
     const r = await fetch(`/api/social/activities/${id}`, { method: "DELETE" });
@@ -175,57 +181,58 @@ function SocialPageInner() {
     else toast.error("Failed to delete");
   };
 
-  // ── Participation CRUD ──
-  const submitParticipation = async (e: React.FormEvent) => {
+  // ── Join (log participation from card) ──
+  const openJoin = (act: CSRActivity) => {
+    setJoinActivity(act);
+    setJoinForm(EMPTY_JOIN);
+    setJoinOpen(true);
+  };
+  const submitJoin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!joinActivity) return;
     const res = await fetch("/api/social/participation", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(partForm),
+      body: JSON.stringify({ employeeName: joinForm.employeeName, activityId: joinActivity.id,
+        proofUrl: joinForm.proofUrl || null, completionDate: joinForm.completionDate || null }),
     });
     if (res.ok) {
-      toast.success("Participation logged!"); setPartOpen(false);
-      setPartForm(EMPTY_PART); loadParticipations();
-    } else {
-      const err = await res.json(); toast.error(err.error ?? "Failed");
-    }
+      toast.success(`Joined "${joinActivity.title}"!`);
+      setJoinOpen(false); setJoinForm(EMPTY_JOIN);
+      loadActivities(); loadParticipations();
+    } else { const err = await res.json(); toast.error(err.error ?? "Failed to join"); }
+  };
+
+  // ── Log participation from participation tab ──
+  const submitPart = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch("/api/social/participation", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(partForm) });
+    if (res.ok) { toast.success("Participation logged!"); setPartOpen(false); setPartForm(EMPTY_PART); loadParticipations(); }
+    else { const err = await res.json(); toast.error(err.error ?? "Failed"); }
   };
 
   // ── Approve / Reject ──
   const handleApprove = async (id: number) => {
     const res  = await fetch(`/api/social/participation/${id}/approve`, { method: "PUT" });
     const data = await res.json();
-    if (res.ok) { toast.success("Participation approved! +50 pts"); loadParticipations(); }
+    if (res.ok) { toast.success("Approved! +50 pts"); loadParticipations(); }
     else toast.error(data.error ?? "Failed to approve");
   };
   const handleReject = async (id: number) => {
     const res = await fetch(`/api/social/participation/${id}/reject`, { method: "PUT" });
-    if (res.ok) { toast.success("Participation rejected"); loadParticipations(); }
+    if (res.ok) { toast.success("Rejected"); loadParticipations(); }
     else toast.error("Failed to reject");
   };
 
   // ── Derived ──
-  const pendingQueue   = participations.filter(p => p.approvalStatus === "Pending");
-  const approvedCount  = participations.filter(p => p.approvalStatus === "Approved").length;
-  const totalPoints    = participations.reduce((s, p) => s + p.pointsEarned, 0);
-  const openActivities = activities.filter(a => a.open).length;
-
+  const pendingQueue    = participations.filter(p => p.approvalStatus === "Pending");
   const fmt = (s: string | null) => s ? new Date(s).toLocaleDateString() : "—";
-  const approvalColor = (s: string) =>
-    s === "Approved" ? "green" : s === "Rejected" ? "red" : "yellow";
 
-  const TabBtn = ({ tab, label, badge }: { tab: typeof mainTab; label: string; badge?: number }) => (
-    <button onClick={() => setMainTab(tab)}
-      className={`px-5 py-3 font-medium text-sm transition-all relative ${
-        mainTab === tab
-          ? "text-[#F97316] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#F97316]"
-          : "text-[#9CA3AF] hover:text-white"
-      }`}>
-      {label}
-      {badge !== undefined && badge > 0 && (
-        <span className="ml-2 bg-[#F97316] text-white text-xs rounded-full px-1.5 py-0.5 align-middle">{badge}</span>
-      )}
-    </button>
-  );
+  const TABS = [
+    { key: "activities",    label: "CSR Activities" },
+    { key: "participation", label: "Employee Participation" },
+    { key: "diversity",     label: "Diversity Dashboard" },
+  ] as const;
 
   if (loading) {
     return (
@@ -236,256 +243,384 @@ function SocialPageInner() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#F97316]/15 flex items-center justify-center">
-              <Users className="w-5 h-5 text-[#F97316]" />
-            </div>
-            Social Module
-          </h1>
-          <p className="text-[#9CA3AF] mt-1 ml-14">Manage CSR activities and employee participation</p>
-        </div>
-        {mainTab === "activities" && (
-          <button onClick={openNewActivity}
-            className="flex items-center gap-2 bg-[#F97316] text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-[#EA580C] transition shadow-lg shadow-[#F97316]/20">
-            <Plus className="w-4 h-4" /> New Activity
+    <div className="space-y-0">
+      {/* ── Page Title ── */}
+      <div className="mb-5">
+        <h1 className="text-2xl font-bold text-[#3B82F6] tracking-tight">
+          ⊙ Social: CSR &amp; Employee Engagement
+        </h1>
+      </div>
+
+      {/* ── Full-width Tab Bar ── */}
+      <div className="flex w-full border border-[#2A2A2A] rounded-lg overflow-hidden mb-5">
+        {TABS.map((tab, i) => (
+          <button
+            key={tab.key}
+            onClick={() => setMainTab(tab.key)}
+            className={`flex-1 py-3 text-sm font-medium transition-all duration-150 ${
+              i < TABS.length - 1 ? "border-r border-[#2A2A2A]" : ""
+            } ${
+              mainTab === tab.key
+                ? "bg-[#1A1A1A] text-[#3B82F6]"
+                : "bg-[#0D0D0D] text-[#9CA3AF] hover:text-white hover:bg-[#111111]"
+            }`}
+          >
+            {tab.label}
           </button>
-        )}
-        {mainTab === "participation" && (
-          <button onClick={() => { setPartForm(EMPTY_PART); setPartOpen(true); }}
-            className="flex items-center gap-2 bg-[#F97316] text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-[#EA580C] transition shadow-lg shadow-[#F97316]/20">
-            <Plus className="w-4 h-4" /> Log Participation
-          </button>
-        )}
+        ))}
       </div>
 
-      {/* Stats Bar */}
-      <div className="grid grid-cols-4 gap-4">
-        <StatCard label="Total Activities"      value={activities.length}   color="text-[#F97316]" />
-        <StatCard label="Open Activities"       value={openActivities}      color="text-green-400" sub="accepting sign-ups" />
-        <StatCard label="Pending Approvals"     value={pendingQueue.length} color="text-yellow-400" sub="need review" />
-        <StatCard label="Total Points Awarded"  value={totalPoints}         color="text-[#F97316]" sub={`${approvedCount} approved`} />
-      </div>
-
-      {/* Main Tabs */}
-      <div className="border-b border-[#2A2A2A] flex">
-        <TabBtn tab="activities"    label="CSR Activities" />
-        <TabBtn tab="participation" label="Employee Participation" badge={pendingQueue.length} />
-        <TabBtn tab="diversity"     label="Diversity Dashboard" />
-      </div>
-
-      {/* ── CSR ACTIVITIES ── */}
+      {/* ══════════════════════════════════════════════════════
+          TAB 1: CSR ACTIVITIES
+      ══════════════════════════════════════════════════════ */}
       {mainTab === "activities" && (
-        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden">
+        <div className="space-y-6">
+          {/* Add button */}
+          <div>
+            <button onClick={openNewActivity}
+              className="flex items-center gap-2 bg-[#1A1A1A] border border-[#3B82F6]/50 text-[#3B82F6] hover:bg-[#3B82F6]/10 px-4 py-2 rounded-md text-sm font-medium transition-all">
+              <Plus className="w-4 h-4" /> New Activity
+            </button>
+          </div>
+
+          {/* Activity Cards Grid */}
           {activities.length === 0 ? (
-            <div className="py-16 text-center text-[#9CA3AF]">
+            <div className="py-16 text-center text-[#9CA3AF] bg-[#111111] rounded-xl border border-[#2A2A2A]">
               <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p className="font-medium">No CSR activities yet</p>
-              <p className="text-xs mt-1">Click "New Activity" to create one</p>
+              <p className="text-xs mt-1 opacity-60">Click "+ New Activity" to create one</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-[#111111] text-[#9CA3AF] text-xs uppercase tracking-wider">
-                  <th className="px-6 py-4 text-left font-medium">Title</th>
-                  <th className="px-6 py-4 text-left font-medium">Category</th>
-                  <th className="px-6 py-4 text-left font-medium">Department</th>
-                  <th className="px-6 py-4 text-left font-medium">Date</th>
-                  <th className="px-6 py-4 text-left font-medium">Participants</th>
-                  <th className="px-6 py-4 text-left font-medium">Status</th>
-                  <th className="px-6 py-4 text-right font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#2A2A2A]">
-                {activities.map(act => (
-                  <tr key={act.id} className="hover:bg-[#F97316]/5 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-white">{act.title}</div>
-                      {act.description && (
-                        <div className="text-xs text-[#9CA3AF] mt-0.5 truncate max-w-[180px]">{act.description}</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-xs bg-[#F97316]/10 text-[#F97316] px-2 py-0.5 rounded-full">
-                        {act.category?.name}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-[#9CA3AF]">{act.dept?.name}</td>
-                    <td className="px-6 py-4 text-[#9CA3AF]">
-                      <div className="flex items-center gap-1.5">
-                        <CalendarDays className="w-3.5 h-3.5" />
-                        {fmt(act.date)}
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+              {activities.map(act => {
+                const joinedCount = act.participations?.length ?? 0;
+                const evidenceRequired = esgConfig?.requireCsrEvidence && !act.open;
+                const emoji = getEmoji(act.category?.name ?? "");
+                return (
+                  <div key={act.id}
+                    className="bg-[#111111] border border-[#3B82F6]/40 rounded-xl p-4 flex flex-col gap-3 hover:border-[#3B82F6]/70 hover:shadow-lg hover:shadow-[#3B82F6]/10 transition-all duration-200 group">
+                    {/* Card Header */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{emoji}</span>
+                        <div>
+                          <h3 className="font-semibold text-white text-sm leading-tight">{act.title}</h3>
+                          <p className="text-[#9CA3AF] text-xs mt-0.5">{joinedCount} joined</p>
+                        </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-white font-semibold">{act.participations?.length ?? 0}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusPill label={act.open ? "Open" : "Closed"} color={act.open ? "green" : "gray"} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-1">
+                      {/* Edit/Delete actions — visible on hover */}
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => openEditActivity(act)} title="Edit"
-                          className="p-1.5 rounded hover:bg-[#F97316]/20 text-[#9CA3AF] hover:text-[#F97316] transition">
-                          <Pencil className="w-4 h-4" />
+                          className="p-1 rounded hover:bg-[#2A2A2A] text-[#6B7280] hover:text-white transition">
+                          <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <ConfirmDelete onConfirm={() => deleteActivity(act.id)} label="Activity" />
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+
+                    {/* Status */}
+                    <p className="text-xs text-[#9CA3AF]">
+                      {esgConfig?.requireCsrEvidence
+                        ? "Evidence Required"
+                        : act.open ? "Open" : "Closed"}
+                    </p>
+
+                    {/* Join Button */}
+                    <button
+                      onClick={() => act.open ? openJoin(act) : toast.error("This activity is closed")}
+                      className={`w-full py-1.5 rounded-md text-sm font-medium border transition-all duration-150 ${
+                        act.open
+                          ? "border-[#3B82F6]/60 text-[#3B82F6] hover:bg-[#3B82F6]/10"
+                          : "border-[#2A2A2A] text-[#6B7280] cursor-not-allowed"
+                      }`}
+                    >
+                      Join
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           )}
+
+          {/* ── Embedded Approval Queue ── */}
+          <div>
+            <h2 className="text-sm font-semibold text-white mb-3">
+              Employee Participation: approval queue
+            </h2>
+            <div className="border border-[#2A2A2A] rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[#0D0D0D] border-b border-[#2A2A2A]">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#9CA3AF]">Employee</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#9CA3AF]">Activity/Challenge</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#9CA3AF]">Proof</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#9CA3AF]">Points</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[#9CA3AF]">Approval</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-[#9CA3AF]">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#1E1E1E]">
+                  {participations.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-[#9CA3AF] text-xs">
+                        No participation records yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    participations.map(p => (
+                      <tr key={p.id} className="hover:bg-[#111111] transition-colors bg-[#0D0D0D]">
+                        <td className="px-4 py-3 font-medium text-white text-xs">{p.employeeName}</td>
+                        <td className="px-4 py-3 text-[#9CA3AF] text-xs">{p.activity?.title ?? "—"}</td>
+                        <td className="px-4 py-3 text-xs">
+                          {p.proofUrl
+                            ? <a href={p.proofUrl} target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-[#3B82F6] hover:underline">
+                                {p.proofUrl.split("/").pop()?.slice(0, 12) ?? "View"} <ExternalLink className="w-3 h-3" />
+                              </a>
+                            : <span className="text-[#4B5563]">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          <span className={p.pointsEarned > 0 ? "text-[#F97316] font-semibold" : "text-[#4B5563]"}>
+                            {p.pointsEarned > 0 ? p.pointsEarned : "—"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <ApprovalPill status={p.approvalStatus} />
+                        </td>
+                        <td className="px-4 py-3">
+                          {p.approvalStatus === "Pending" && (
+                            <div className="flex items-center justify-end gap-2">
+                              <button onClick={() => handleApprove(p.id)}
+                                className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded font-medium transition">
+                                Approve
+                              </button>
+                              <button onClick={() => handleReject(p.id)}
+                                className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded font-medium transition">
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* ── EMPLOYEE PARTICIPATION ── */}
+      {/* ══════════════════════════════════════════════════════
+          TAB 2: EMPLOYEE PARTICIPATION
+      ══════════════════════════════════════════════════════ */}
       {mainTab === "participation" && (
-        <div className="space-y-4">
-          <div className="flex gap-1 bg-[#111111] rounded-lg p-1 w-fit border border-[#2A2A2A]">
+        <div className="space-y-5">
+          {/* Header action */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-white">Employee Participation</h2>
+              <p className="text-xs text-[#9CA3AF] mt-0.5">Track and manage all employee CSR participation records</p>
+            </div>
+            <button onClick={() => { setPartForm(EMPTY_PART); setPartOpen(true); }}
+              className="flex items-center gap-2 bg-[#1A1A1A] border border-[#F97316]/50 text-[#F97316] hover:bg-[#F97316]/10 px-4 py-2 rounded-md text-sm font-medium transition-all">
+              <UserPlus className="w-4 h-4" /> Log Participation
+            </button>
+          </div>
+
+          {/* Participation summary cards */}
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label: "Total Records", value: participations.length, icon: Users, color: "text-[#F97316]" },
+              { label: "Pending Approval", value: pendingQueue.length, icon: TrendingUp, color: "text-yellow-400" },
+              { label: "Points Awarded", value: participations.reduce((s, p) => s + p.pointsEarned, 0), icon: Award, color: "text-green-400" },
+            ].map(s => (
+              <div key={s.label} className="bg-[#111111] border border-[#2A2A2A] rounded-xl p-4 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-lg bg-[#1A1A1A] flex items-center justify-center">
+                  <s.icon className={`w-5 h-5 ${s.color}`} />
+                </div>
+                <div>
+                  <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                  <p className="text-xs text-[#9CA3AF]">{s.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Sub-tabs: All | Pending Queue */}
+          <div className="flex gap-1 bg-[#0D0D0D] rounded-lg p-1 border border-[#2A2A2A] w-fit">
             {(["all", "queue"] as const).map(t => (
-              <button key={t} onClick={() => setPartTab(t)}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                  partTab === t ? "bg-[#1A1A1A] text-white shadow" : "text-[#9CA3AF] hover:text-white"
-                }`}>
-                {t === "all" ? "All Participation" : `Approval Queue${pendingQueue.length > 0 ? ` (${pendingQueue.length})` : ""}`}
+              <button key={t}
+                onClick={() => {}}
+                className="px-4 py-1.5 rounded-md text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-[#1A1A1A] transition">
+                {t === "all" ? "All Records" : `Pending Queue (${pendingQueue.length})`}
               </button>
             ))}
           </div>
 
-          <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden">
-            {partTab === "all" ? (
-              participations.length === 0 ? (
-                <div className="py-16 text-center text-[#9CA3AF]">
-                  <TrendingUp className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p>No participation records yet.</p>
-                </div>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-[#111111] text-[#9CA3AF] text-xs uppercase tracking-wider">
-                      <th className="px-6 py-4 text-left font-medium">Employee</th>
-                      <th className="px-6 py-4 text-left font-medium">Activity</th>
-                      <th className="px-6 py-4 text-left font-medium">Proof</th>
-                      <th className="px-6 py-4 text-left font-medium">Points</th>
-                      <th className="px-6 py-4 text-left font-medium">Status</th>
-                      <th className="px-6 py-4 text-left font-medium">Completion</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#2A2A2A]">
-                    {participations.map(p => (
-                      <tr key={p.id} className="hover:bg-[#F97316]/5 transition-colors">
-                        <td className="px-6 py-4 font-medium text-white">{p.employeeName}</td>
-                        <td className="px-6 py-4 text-[#9CA3AF]">{p.activity?.title ?? "—"}</td>
-                        <td className="px-6 py-4">
-                          {p.proofUrl
-                            ? <a href={p.proofUrl} target="_blank" rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[#F97316] hover:underline text-xs">
-                                View <ExternalLink className="w-3 h-3" />
-                              </a>
-                            : <span className="text-[#9CA3AF] text-xs">—</span>}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`font-semibold ${p.pointsEarned > 0 ? "text-[#F97316]" : "text-[#9CA3AF]"}`}>
-                            {p.pointsEarned > 0 ? `+${p.pointsEarned}` : "—"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <StatusPill label={p.approvalStatus} color={approvalColor(p.approvalStatus)} />
-                        </td>
-                        <td className="px-6 py-4 text-[#9CA3AF]">{fmt(p.completionDate)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )
-            ) : (
-              pendingQueue.length === 0 ? (
-                <div className="py-16 text-center text-[#9CA3AF]">
-                  <CheckCircle className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p className="font-medium">All clear — no pending approvals!</p>
-                </div>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-[#111111] text-[#9CA3AF] text-xs uppercase tracking-wider">
-                      <th className="px-6 py-4 text-left font-medium">Employee</th>
-                      <th className="px-6 py-4 text-left font-medium">Activity</th>
-                      <th className="px-6 py-4 text-left font-medium">Proof</th>
-                      <th className="px-6 py-4 text-left font-medium">Submitted</th>
-                      <th className="px-6 py-4 text-right font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#2A2A2A]">
-                    {pendingQueue.map(p => (
-                      <tr key={p.id} className="hover:bg-[#F97316]/5 transition-colors">
-                        <td className="px-6 py-4 font-medium text-white">{p.employeeName}</td>
-                        <td className="px-6 py-4 text-[#9CA3AF]">{p.activity?.title ?? "—"}</td>
-                        <td className="px-6 py-4">
-                          {p.proofUrl
-                            ? <a href={p.proofUrl} target="_blank" rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[#F97316] hover:underline text-xs">
-                                View <ExternalLink className="w-3 h-3" />
-                              </a>
-                            : <span className="text-yellow-500/70 text-xs italic">No proof</span>}
-                        </td>
-                        <td className="px-6 py-4 text-[#9CA3AF] text-xs">{fmt(p.createdAt)}</td>
-                        <td className="px-6 py-4">
+          {/* Full participation table */}
+          <div className="border border-[#2A2A2A] rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[#111111] border-b border-[#2A2A2A]">
+                  <th className="px-5 py-3.5 text-left text-xs font-medium text-[#9CA3AF] uppercase tracking-wider">Employee</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-medium text-[#9CA3AF] uppercase tracking-wider">Activity</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-medium text-[#9CA3AF] uppercase tracking-wider">Proof</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-medium text-[#9CA3AF] uppercase tracking-wider">Points</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-medium text-[#9CA3AF] uppercase tracking-wider">Status</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-medium text-[#9CA3AF] uppercase tracking-wider">Completion</th>
+                  <th className="px-5 py-3.5 text-right text-xs font-medium text-[#9CA3AF] uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#1E1E1E] bg-[#0D0D0D]">
+                {participations.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-12 text-center text-[#9CA3AF]">
+                      <UserPlus className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      <p>No participation records yet.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  participations.map(p => (
+                    <tr key={p.id} className="hover:bg-[#111111] transition-colors">
+                      <td className="px-5 py-3.5 font-medium text-white">{p.employeeName}</td>
+                      <td className="px-5 py-3.5 text-[#9CA3AF]">{p.activity?.title ?? "—"}</td>
+                      <td className="px-5 py-3.5">
+                        {p.proofUrl
+                          ? <a href={p.proofUrl} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-[#3B82F6] hover:underline text-xs">
+                              View <ExternalLink className="w-3 h-3" />
+                            </a>
+                          : <span className="text-[#4B5563] text-xs">—</span>}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className={p.pointsEarned > 0 ? "text-[#F97316] font-bold" : "text-[#4B5563]"}>
+                          {p.pointsEarned > 0 ? `+${p.pointsEarned}` : "—"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <ApprovalPill status={p.approvalStatus} />
+                      </td>
+                      <td className="px-5 py-3.5 text-[#9CA3AF] text-xs">{fmt(p.completionDate)}</td>
+                      <td className="px-5 py-3.5 text-right">
+                        {p.approvalStatus === "Pending" && (
                           <div className="flex items-center justify-end gap-2">
                             <button onClick={() => handleApprove(p.id)}
-                              className="flex items-center gap-1.5 bg-green-900/30 hover:bg-green-900/60 text-green-400 px-3 py-1.5 rounded-md text-xs font-medium transition">
-                              <CheckCircle className="w-3.5 h-3.5" /> Approve
+                              className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded font-medium transition">
+                              Approve
                             </button>
                             <button onClick={() => handleReject(p.id)}
-                              className="flex items-center gap-1.5 bg-red-900/30 hover:bg-red-900/60 text-red-400 px-3 py-1.5 rounded-md text-xs font-medium transition">
-                              <XCircle className="w-3.5 h-3.5" /> Reject
+                              className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded font-medium transition">
+                              Reject
                             </button>
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )
-            )}
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {/* ── DIVERSITY DASHBOARD ── */}
+      {/* ══════════════════════════════════════════════════════
+          TAB 3: DIVERSITY DASHBOARD
+      ══════════════════════════════════════════════════════ */}
       {mainTab === "diversity" && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 p-3 bg-yellow-900/10 border border-yellow-900/30 rounded-lg text-yellow-400 text-xs">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            These cards display demo data for visualization purposes only.
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-base font-semibold text-white">Diversity Dashboard</h2>
+            <p className="text-xs text-[#9CA3AF] mt-0.5">Workforce diversity & inclusion overview</p>
           </div>
+
+          {/* Demo notice */}
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-yellow-900/10 border border-yellow-800/30 rounded-lg text-yellow-500/80 text-xs">
+            ⚠ These metrics display demo data for presentation purposes.
+          </div>
+
+          {/* Top KPI cards */}
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: "Female Employees",    value: "42%",    icon: "👩", desc: "of total workforce" },
-              { label: "Training Completion", value: "78%",    icon: "📚", desc: "completed this quarter" },
-              { label: "Avg. Tenure",         value: "3.2 yrs", icon: "⏳", desc: "across all departments" },
-            ].map(card => (
-              <div key={card.label} className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-6 space-y-3 hover:border-[#F97316]/30 transition-colors">
-                <div className="text-3xl">{card.icon}</div>
+              { label: "Female Employees", value: "42%",    emoji: "👩", sub: "of total workforce", color: "from-pink-500/20 to-pink-500/5", border: "border-pink-500/30" },
+              { label: "Training Completion", value: "78%", emoji: "📚", sub: "completed this quarter", color: "from-blue-500/20 to-blue-500/5", border: "border-blue-500/30" },
+              { label: "Avg. Tenure",       value: "3.2 yrs", emoji: "⏳", sub: "across all departments", color: "from-purple-500/20 to-purple-500/5", border: "border-purple-500/30" },
+            ].map(c => (
+              <div key={c.label} className={`bg-gradient-to-br ${c.color} border ${c.border} rounded-xl p-5 flex flex-col gap-2`}>
+                <div className="text-3xl">{c.emoji}</div>
+                <div className="text-3xl font-bold text-white">{c.value}</div>
                 <div>
-                  <div className="text-3xl font-bold text-white">{card.value}</div>
-                  <div className="text-sm font-medium text-[#F97316] mt-1">{card.label}</div>
-                  <div className="text-xs text-[#9CA3AF] mt-0.5">{card.desc}</div>
+                  <p className="text-sm font-medium text-white/90">{c.label}</p>
+                  <p className="text-xs text-white/50 mt-0.5">{c.sub}</p>
                 </div>
-                <span className="inline-block text-[10px] bg-yellow-900/20 text-yellow-500 px-2 py-0.5 rounded">Demo Data</span>
+                <span className="text-[10px] text-yellow-500 bg-yellow-900/20 px-2 py-0.5 rounded w-fit">Demo Data</span>
               </div>
             ))}
           </div>
+
+          {/* Breakdown section */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Department diversity */}
+            <div className="bg-[#111111] border border-[#2A2A2A] rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-[#F97316]" /> Department Diversity
+              </h3>
+              <div className="space-y-3">
+                {[
+                  { dept: "Engineering",  pct: 35, color: "bg-blue-500" },
+                  { dept: "HR",           pct: 68, color: "bg-pink-500" },
+                  { dept: "Operations",   pct: 42, color: "bg-orange-500" },
+                  { dept: "Finance",      pct: 51, color: "bg-purple-500" },
+                ].map(d => (
+                  <div key={d.dept}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-[#9CA3AF]">{d.dept}</span>
+                      <span className="text-white font-medium">{d.pct}%</span>
+                    </div>
+                    <div className="w-full bg-[#2A2A2A] rounded-full h-1.5">
+                      <div className={`${d.color} h-1.5 rounded-full transition-all duration-700`} style={{ width: `${d.pct}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-yellow-500 mt-4">* Demo Data</p>
+            </div>
+
+            {/* CSR Engagement */}
+            <div className="bg-[#111111] border border-[#2A2A2A] rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <Users className="w-4 h-4 text-[#22C55E]" /> CSR Engagement (Live)
+              </h3>
+              <div className="space-y-3">
+                {activities.slice(0, 4).map(act => {
+                  const count = act.participations?.length ?? 0;
+                  const pct   = Math.min(100, count * 10);
+                  return (
+                    <div key={act.id}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-[#9CA3AF] truncate max-w-[140px]">{act.title}</span>
+                        <span className="text-white font-medium">{count} joined</span>
+                      </div>
+                      <div className="w-full bg-[#2A2A2A] rounded-full h-1.5">
+                        <div className="bg-[#22C55E] h-1.5 rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+                {activities.length === 0 && (
+                  <p className="text-xs text-[#9CA3AF] italic">No activities yet.</p>
+                )}
+              </div>
+              <p className="text-[10px] text-green-500 mt-4">* Live Data from CSR Activities</p>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* ── MODALS ── */}
+      {/* ══ MODALS ══ */}
 
-      {/* Activity Modal */}
+      {/* Activity Create/Edit Modal */}
       <Dialog open={actOpen} onOpenChange={setActOpen}>
         <DialogContent className="!bg-[#1A1A1A] !border-[#2A2A2A] text-white sm:max-w-lg">
           <DialogHeader>
@@ -495,7 +630,7 @@ function SocialPageInner() {
             <div>
               <label className={LABEL}>Title *</label>
               <input required value={actForm.title} onChange={e => setActForm({ ...actForm, title: e.target.value })}
-                className={INPUT} placeholder="Beach Cleanup Drive" />
+                className={INPUT} placeholder="Tree Plantation Drive" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -515,8 +650,7 @@ function SocialPageInner() {
             </div>
             <div>
               <label className={LABEL}>Description</label>
-              <textarea rows={3} value={actForm.description} onChange={e => setActForm({ ...actForm, description: e.target.value })}
-                className={INPUT} placeholder="Optional description…" />
+              <textarea rows={2} value={actForm.description} onChange={e => setActForm({ ...actForm, description: e.target.value })} className={INPUT} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -535,7 +669,7 @@ function SocialPageInner() {
               <DialogClose asChild>
                 <button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition">Cancel</button>
               </DialogClose>
-              <button type="submit" className="flex-1 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg py-2 text-sm font-medium transition shadow-lg shadow-[#F97316]/20">
+              <button type="submit" className="flex-1 bg-[#3B82F6] hover:bg-[#2563EB] text-white rounded-lg py-2 text-sm font-medium transition">
                 {editAct ? "Save Changes" : "Create Activity"}
               </button>
             </div>
@@ -543,13 +677,55 @@ function SocialPageInner() {
         </DialogContent>
       </Dialog>
 
-      {/* Participation Modal */}
+      {/* Join Activity Modal */}
+      <Dialog open={joinOpen} onOpenChange={setJoinOpen}>
+        <DialogContent className="!bg-[#1A1A1A] !border-[#2A2A2A] text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              Join: <span className="text-[#3B82F6]">{joinActivity?.title}</span>
+            </DialogTitle>
+          </DialogHeader>
+          {joinActivity && (
+            <form onSubmit={submitJoin} className="space-y-4 mt-2">
+              <div>
+                <label className={LABEL}>Your Name *</label>
+                <input required value={joinForm.employeeName} onChange={e => setJoinForm({ ...joinForm, employeeName: e.target.value })}
+                  className={INPUT} placeholder="Jane Doe" />
+              </div>
+              {esgConfig?.requireCsrEvidence && (
+                <div className="px-3 py-2 bg-yellow-900/10 border border-yellow-800/30 rounded-md text-yellow-400 text-xs">
+                  ⚠ Evidence is required for this activity. Please provide a proof URL.
+                </div>
+              )}
+              <div>
+                <label className={LABEL}>Proof URL {esgConfig?.requireCsrEvidence ? "*" : "(optional)"}</label>
+                <input type="url" value={joinForm.proofUrl} onChange={e => setJoinForm({ ...joinForm, proofUrl: e.target.value })}
+                  className={INPUT} placeholder="https://drive.google.com/…" />
+              </div>
+              <div>
+                <label className={LABEL}>Completion Date (optional)</label>
+                <input type="date" value={joinForm.completionDate} onChange={e => setJoinForm({ ...joinForm, completionDate: e.target.value })} className={INPUT} />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <DialogClose asChild>
+                  <button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition">Cancel</button>
+                </DialogClose>
+                <button type="submit" className="flex-1 bg-[#3B82F6] hover:bg-[#2563EB] text-white rounded-lg py-2 text-sm font-medium transition">
+                  Confirm Join
+                </button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Log Participation Modal (from Participation tab) */}
       <Dialog open={partOpen} onOpenChange={setPartOpen}>
         <DialogContent className="!bg-[#1A1A1A] !border-[#2A2A2A] text-white sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-white">Log Employee Participation</DialogTitle>
           </DialogHeader>
-          <form onSubmit={submitParticipation} className="space-y-4 mt-2">
+          <form onSubmit={submitPart} className="space-y-4 mt-2">
             <div>
               <label className={LABEL}>Employee Name *</label>
               <input required value={partForm.employeeName} onChange={e => setPartForm({ ...partForm, employeeName: e.target.value })}
@@ -565,7 +741,7 @@ function SocialPageInner() {
             <div>
               <label className={LABEL}>Proof URL (optional)</label>
               <input type="url" value={partForm.proofUrl} onChange={e => setPartForm({ ...partForm, proofUrl: e.target.value })}
-                className={INPUT} placeholder="https://drive.google.com/…" />
+                className={INPUT} placeholder="https://…" />
             </div>
             <div>
               <label className={LABEL}>Completion Date (optional)</label>
@@ -575,7 +751,7 @@ function SocialPageInner() {
               <DialogClose asChild>
                 <button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition">Cancel</button>
               </DialogClose>
-              <button type="submit" className="flex-1 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg py-2 text-sm font-medium transition shadow-lg shadow-[#F97316]/20">
+              <button type="submit" className="flex-1 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg py-2 text-sm font-medium transition">
                 Log Participation
               </button>
             </div>
@@ -586,7 +762,6 @@ function SocialPageInner() {
   );
 }
 
-// ─── Export with Suspense for useSearchParams ─────────────────────────────────
 export default function SocialPage() {
   return (
     <Suspense fallback={

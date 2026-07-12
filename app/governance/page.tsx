@@ -79,9 +79,7 @@ function ConfirmDelete({ onConfirm, label }: { onConfirm: () => void; label: str
         <DialogHeader><DialogTitle className="text-white">Delete {label}?</DialogTitle></DialogHeader>
         <p className="text-sm text-[#9CA3AF] mt-1">This action cannot be undone.</p>
         <div className="flex gap-3 mt-4">
-          <DialogClose asChild>
-            <button className="flex-1 border border-[#2A2A2A] rounded-md py-2 text-sm text-[#9CA3AF] hover:text-white transition">Cancel</button>
-          </DialogClose>
+          <DialogClose render={<button className="flex-1 border border-[#2A2A2A] rounded-md py-2 text-sm text-[#9CA3AF] hover:text-white transition" />} >Cancel</DialogClose>
           <button onClick={() => { setOpen(false); onConfirm(); }}
             className="flex-1 bg-red-600 hover:bg-red-700 rounded-md py-2 text-sm text-white font-medium transition">Delete</button>
         </div>
@@ -357,22 +355,24 @@ function GovernancePageInner() {
       </div>
 
       {/* ── Full-width Tab Bar ── */}
-      <div className="flex w-full border border-[#2A2A2A] rounded-lg overflow-hidden mb-5">
-        {TABS.map((tab, i) => (
-          <button
-            key={tab.key}
-            onClick={() => setMainTab(tab.key)}
-            className={`flex-1 py-3 text-sm font-medium transition-all duration-150 ${
-              i < TABS.length - 1 ? "border-r border-[#2A2A2A]" : ""
-            } ${
-              mainTab === tab.key
-                ? "bg-[#1A1A1A] text-[#3B82F6]"
-                : "bg-[#0D0D0D] text-[#9CA3AF] hover:text-white hover:bg-[#111111]"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-[#2A2A2A] mb-5">
+        <div className="flex w-full border border-[#2A2A2A] rounded-lg overflow-hidden min-w-max">
+          {TABS.map((tab, i) => (
+            <button
+              key={tab.key}
+              onClick={() => setMainTab(tab.key)}
+              className={`flex-1 py-3 px-5 text-sm font-medium transition-all duration-150 whitespace-nowrap ${
+                i < TABS.length - 1 ? "border-r border-[#2A2A2A]" : ""
+              } ${
+                mainTab === tab.key
+                  ? "bg-[#1A1A1A] text-[#3B82F6]"
+                  : "bg-[#0D0D0D] text-[#9CA3AF] hover:text-white hover:bg-[#111111]"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════
@@ -390,7 +390,7 @@ function GovernancePageInner() {
           </div>
 
           {/* Policies table */}
-          <div className="border border-[#2A2A2A] rounded-lg overflow-hidden">
+          <div className="border border-[#2A2A2A] rounded-lg overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-[#0D0D0D] border-b border-[#2A2A2A]">
@@ -439,7 +439,7 @@ function GovernancePageInner() {
             <p className="text-xs font-semibold text-white mb-2">
               Policy Acknowledgements — employee sign-offs tracked per policy
             </p>
-            <div className="border border-[#2A2A2A] rounded-lg overflow-hidden">
+            <div className="border border-[#2A2A2A] rounded-lg overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-[#0D0D0D] border-b border-[#2A2A2A]">
@@ -503,7 +503,7 @@ function GovernancePageInner() {
           )}
 
           {/* Full ack table */}
-          <div className="border border-[#2A2A2A] rounded-lg overflow-hidden">
+          <div className="border border-[#2A2A2A] rounded-lg overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-[#0D0D0D] border-b border-[#2A2A2A]">
@@ -543,7 +543,7 @@ function GovernancePageInner() {
           </div>
 
           {/* Audits table */}
-          <div className="border border-[#2A2A2A] rounded-lg overflow-hidden">
+          <div className="border border-[#2A2A2A] rounded-lg overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-[#0D0D0D] border-b border-[#2A2A2A]">
@@ -591,7 +591,7 @@ function GovernancePageInner() {
             <p className="text-xs font-semibold text-white mb-2">
               Compliance Issues raised from Audits — severity-tagged, resolution tracked
             </p>
-            <div className="border border-[#2A2A2A] rounded-lg overflow-hidden">
+            <div className="border border-[#2A2A2A] rounded-lg overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-[#0D0D0D] border-b border-[#2A2A2A]">
@@ -665,7 +665,7 @@ function GovernancePageInner() {
           </div>
 
           {/* Full compliance table */}
-          <div className="border border-[#2A2A2A] rounded-lg overflow-hidden">
+          <div className="border border-[#2A2A2A] rounded-lg overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-[#0D0D0D] border-b border-[#2A2A2A]">
@@ -765,9 +765,7 @@ function GovernancePageInner() {
               </div>
             </div>
             <div className="flex gap-3 pt-2">
-              <DialogClose asChild>
-                <button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition">Cancel</button>
-              </DialogClose>
+              <DialogClose render={<button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition" />} >Cancel</DialogClose>
               <button type="submit" className="flex-1 bg-[#3B82F6] hover:bg-[#2563EB] text-white rounded-lg py-2 text-sm font-medium transition">
                 {editPolicy ? "Save Changes" : "Create Policy"}
               </button>
@@ -797,9 +795,7 @@ function GovernancePageInner() {
               </select>
             </div>
             <div className="flex gap-3 pt-2">
-              <DialogClose asChild>
-                <button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition">Cancel</button>
-              </DialogClose>
+              <DialogClose render={<button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition" />} >Cancel</DialogClose>
               <button type="submit" className="flex-1 bg-[#3B82F6] hover:bg-[#2563EB] text-white rounded-lg py-2 text-sm font-medium transition">
                 Record
               </button>
@@ -851,9 +847,7 @@ function GovernancePageInner() {
               <textarea rows={2} value={auditForm.findings} onChange={e => setAuditForm({ ...auditForm, findings: e.target.value })} className={INPUT} placeholder="e.g. 3 minor issues…" />
             </div>
             <div className="flex gap-3 pt-2">
-              <DialogClose asChild>
-                <button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition">Cancel</button>
-              </DialogClose>
+              <DialogClose render={<button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition" />} >Cancel</DialogClose>
               <button type="submit" className="flex-1 bg-[#3B82F6] hover:bg-[#2563EB] text-white rounded-lg py-2 text-sm font-medium transition">
                 {editAudit ? "Save Changes" : "Schedule Audit"}
               </button>
@@ -907,9 +901,7 @@ function GovernancePageInner() {
               </div>
             </div>
             <div className="flex gap-3 pt-2">
-              <DialogClose asChild>
-                <button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition">Cancel</button>
-              </DialogClose>
+              <DialogClose render={<button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition" />} >Cancel</DialogClose>
               <button type="submit" className="flex-1 bg-[#3B82F6] hover:bg-[#2563EB] text-white rounded-lg py-2 text-sm font-medium transition">
                 Log Issue
               </button>
@@ -932,3 +924,5 @@ export default function GovernancePage() {
     </Suspense>
   );
 }
+
+

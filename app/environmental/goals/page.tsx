@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -460,3 +460,4 @@ export default function EnvironmentalGoalsPage() {
     </div>
   );
 }
+

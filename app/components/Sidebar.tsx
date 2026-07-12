@@ -14,6 +14,7 @@ import {
   ChevronDown,
   ChevronRight,
   Globe,
+  X,
 } from "lucide-react";
 
 interface SubItem {
@@ -25,12 +26,16 @@ interface NavItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  color: string;       // active accent color (Tailwind arbitrary)
-  bgColor: string;     // active bg tint
+  color: string;
+  bgColor: string;
   subItems?: SubItem[];
 }
 
-function SidebarInner() {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+function SidebarInner({ onClose }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentTab = searchParams.get("tab");
@@ -72,9 +77,9 @@ function SidebarInner() {
       color: "text-[#F97316]",
       bgColor: "bg-[#F97316]/10 border-l-2 border-[#F97316]",
       subItems: [
-        { name: "CSR Activities",       href: "/social" },
-        { name: "Employee Participation", href: "/social?tab=participation" },
-        { name: "Diversity Dashboard",  href: "/social?tab=diversity" },
+        { name: "CSR Activities",         href: "/social" },
+        { name: "Employee Participation",  href: "/social?tab=participation" },
+        { name: "Diversity Dashboard",     href: "/social?tab=diversity" },
       ],
     },
     {
@@ -84,10 +89,10 @@ function SidebarInner() {
       color: "text-[#3B82F6]",
       bgColor: "bg-[#3B82F6]/10 border-l-2 border-[#3B82F6]",
       subItems: [
-        { name: "Policies",             href: "/governance" },
-        { name: "Acknowledgements",     href: "/governance?tab=acknowledgements" },
-        { name: "Audits",               href: "/governance?tab=audits" },
-        { name: "Compliance Issues",    href: "/governance?tab=compliance" },
+        { name: "Policies",          href: "/governance" },
+        { name: "Acknowledgements",  href: "/governance?tab=acknowledgements" },
+        { name: "Audits",            href: "/governance?tab=audits" },
+        { name: "Compliance Issues", href: "/governance?tab=compliance" },
       ],
     },
     {
@@ -116,22 +121,34 @@ function SidebarInner() {
   return (
     <aside className="w-64 bg-[#111111] text-white flex flex-col border-r border-[#2A2A2A] h-screen fixed top-0 left-0 z-30 font-sans">
       {/* Brand */}
-      <div className="p-6 border-b border-[#2A2A2A] flex items-center gap-3">
-        <Globe className="w-6 h-6 text-[#22C55E] animate-pulse" />
-        <div>
-          <h1 className="text-xl font-bold tracking-wider bg-gradient-to-r from-white to-[#9CA3AF] bg-clip-text text-transparent">
-            EcoSphere
-          </h1>
-          <p className="text-xs text-[#9CA3AF] font-medium tracking-tight">ESG Management</p>
+      <div className="p-6 border-b border-[#2A2A2A] flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Globe className="w-6 h-6 text-[#22C55E] animate-pulse" />
+          <div>
+            <h1 className="text-xl font-bold tracking-wider bg-gradient-to-r from-white to-[#9CA3AF] bg-clip-text text-transparent">
+              EcoSphere
+            </h1>
+            <p className="text-xs text-[#9CA3AF] font-medium tracking-tight">ESG Management</p>
+          </div>
         </div>
+        {/* Mobile close button */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-[#9CA3AF] hover:text-white hover:bg-[#1A1A1A] transition-colors md:hidden"
+            aria-label="Close navigation"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Nav */}
       <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto scrollbar-thin scrollbar-thumb-[#2A2A2A] scrollbar-track-transparent">
         {navItems.map(item => {
-          const isActive = item.subItems
-            ? pathname.startsWith(item.href) && item.href !== "/dashboard"
-            : pathname === item.href;
+          const isSectionActive = item.subItems
+            ? pathname.startsWith(item.href)
+            : pathname === item.href || pathname.startsWith(item.href + "/");
 
           if (item.subItems) {
             const isOpen = openSections[item.name];
@@ -141,7 +158,7 @@ function SidebarInner() {
                 <button
                   onClick={() => toggle(item.name)}
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group ${
-                    isActive
+                    isSectionActive
                       ? `${item.bgColor} ${item.color}`
                       : "text-[#9CA3AF] hover:text-white hover:bg-[#1A1A1A]"
                   }`}
@@ -149,7 +166,7 @@ function SidebarInner() {
                   <div className="flex items-center gap-3">
                     <item.icon
                       className={`w-5 h-5 transition-transform duration-200 group-hover:scale-105 ${
-                        isActive ? item.color : "text-[#9CA3AF] group-hover:text-white"
+                        isSectionActive ? item.color : "text-[#9CA3AF] group-hover:text-white"
                       }`}
                     />
                     <span>{item.name}</span>
@@ -166,14 +183,14 @@ function SidebarInner() {
                       const isSubActive = sub.href.includes("?tab=")
                         ? currentTab === sub.href.split("?tab=")[1] && pathname === sub.href.split("?")[0]
                         : pathname === sub.href && !currentTab;
-
                       return (
                         <Link
                           key={sub.name}
                           href={sub.href}
+                          onClick={onClose}
                           className={`block px-3 py-2 rounded-md text-xs font-medium transition-colors duration-150 ${
                             isSubActive
-                              ? `${item.color} bg-current/5`
+                              ? `${item.color} bg-white/5`
                               : "text-[#9CA3AF] hover:text-white hover:bg-[#1A1A1A]"
                           }`}
                         >
@@ -187,10 +204,14 @@ function SidebarInner() {
             );
           }
 
+          const isActive =
+            pathname === item.href || pathname.startsWith(item.href + "/");
+
           return (
             <Link
               key={item.name}
               href={item.href}
+              onClick={onClose}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group ${
                 isActive
                   ? `${item.bgColor} ${item.color}`
@@ -208,15 +229,15 @@ function SidebarInner() {
         })}
       </nav>
 
-      {/* Footer - Person 3 */}
+      {/* Footer */}
       <div className="p-4 border-t border-[#2A2A2A] bg-[#0E0E0E]">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#F97316] to-[#3B82F6] flex items-center justify-center font-bold text-sm text-white shadow-lg">
-            P3
+          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#22C55E] to-[#3B82F6] flex items-center justify-center font-bold text-sm text-white shadow-lg">
+            ES
           </div>
           <div className="overflow-hidden">
-            <p className="text-xs font-semibold truncate text-white">Person 3</p>
-            <p className="text-[10px] text-[#9CA3AF] truncate">Social &amp; Governance</p>
+            <p className="text-xs font-semibold truncate text-white">EcoSphere Admin</p>
+            <p className="text-[10px] text-[#9CA3AF] truncate">ESG Platform v2026</p>
           </div>
         </div>
       </div>
@@ -224,12 +245,12 @@ function SidebarInner() {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }: SidebarProps) {
   return (
     <Suspense fallback={
       <aside className="w-64 bg-[#111111] border-r border-[#2A2A2A] h-screen fixed top-0 left-0 z-30" />
     }>
-      <SidebarInner />
+      <SidebarInner onClose={onClose} />
     </Suspense>
   );
 }

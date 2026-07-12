@@ -81,9 +81,7 @@ function ConfirmDelete({ onConfirm, label }: { onConfirm: () => void; label: str
         </DialogHeader>
         <p className="text-sm text-[#9CA3AF] mt-1">This action cannot be undone.</p>
         <div className="flex gap-3 mt-4">
-          <DialogClose asChild>
-            <button className="flex-1 border border-[#2A2A2A] rounded-md py-2 text-sm text-[#9CA3AF] hover:text-white transition">Cancel</button>
-          </DialogClose>
+          <DialogClose render={<button className="flex-1 border border-[#2A2A2A] rounded-md py-2 text-sm text-[#9CA3AF] hover:text-white transition" />} >Cancel</DialogClose>
           <button onClick={() => { setOpen(false); onConfirm(); }}
             className="flex-1 bg-red-600 hover:bg-red-700 rounded-md py-2 text-sm text-white font-medium transition">
             Delete
@@ -252,28 +250,30 @@ function SocialPageInner() {
     <div className="space-y-0">
       {/* ── Page Title ── */}
       <div className="mb-5">
-        <h1 className="text-2xl font-bold text-[#3B82F6] tracking-tight">
+        <h1 className="text-2xl font-bold text-[#F97316] tracking-tight">
           ⊙ Social: CSR &amp; Employee Engagement
         </h1>
       </div>
 
       {/* ── Full-width Tab Bar ── */}
-      <div className="flex w-full border border-[#2A2A2A] rounded-lg overflow-hidden mb-5">
-        {TABS.map((tab, i) => (
-          <button
-            key={tab.key}
-            onClick={() => setMainTab(tab.key)}
-            className={`flex-1 py-3 text-sm font-medium transition-all duration-150 ${
-              i < TABS.length - 1 ? "border-r border-[#2A2A2A]" : ""
-            } ${
-              mainTab === tab.key
-                ? "bg-[#1A1A1A] text-[#3B82F6]"
-                : "bg-[#0D0D0D] text-[#9CA3AF] hover:text-white hover:bg-[#111111]"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-[#2A2A2A] mb-5">
+        <div className="flex w-full border border-[#2A2A2A] rounded-lg overflow-hidden min-w-max">
+          {TABS.map((tab, i) => (
+            <button
+              key={tab.key}
+              onClick={() => setMainTab(tab.key)}
+              className={`flex-1 py-3 px-5 text-sm font-medium transition-all duration-150 whitespace-nowrap ${
+                i < TABS.length - 1 ? "border-r border-[#2A2A2A]" : ""
+              } ${
+                mainTab === tab.key
+                  ? "bg-[#1A1A1A] text-[#F97316]"
+                  : "bg-[#0D0D0D] text-[#9CA3AF] hover:text-white hover:bg-[#111111]"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════
@@ -297,7 +297,7 @@ function SocialPageInner() {
               <p className="text-xs mt-1 opacity-60">Click "+ New Activity" to create one</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
               {activities.map(act => {
                 const joinedCount = act.participations?.length ?? 0;
                 const evidenceRequired = esgConfig?.requireCsrEvidence && !act.open;
@@ -353,7 +353,7 @@ function SocialPageInner() {
             <h2 className="text-sm font-semibold text-white mb-3">
               Employee Participation: approval queue
             </h2>
-            <div className="border border-[#2A2A2A] rounded-lg overflow-hidden">
+            <div className="border border-[#2A2A2A] rounded-lg overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-[#0D0D0D] border-b border-[#2A2A2A]">
@@ -435,7 +435,7 @@ function SocialPageInner() {
           </div>
 
           {/* Participation summary cards */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { label: "Total Records", value: participations.length, icon: Users, color: "text-[#F97316]" },
               { label: "Pending Approval", value: pendingQueue.length, icon: TrendingUp, color: "text-yellow-400" },
@@ -455,17 +455,30 @@ function SocialPageInner() {
 
           {/* Sub-tabs: All | Pending Queue */}
           <div className="flex gap-1 bg-[#0D0D0D] rounded-lg p-1 border border-[#2A2A2A] w-fit">
-            {(["all", "queue"] as const).map(t => (
-              <button key={t}
-                onClick={() => {}}
-                className="px-4 py-1.5 rounded-md text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-[#1A1A1A] transition">
-                {t === "all" ? "All Records" : `Pending Queue (${pendingQueue.length})`}
-              </button>
-            ))}
+            {(["all", "queue"] as const).map(t => {
+              const [partSubTab, setPartSubTab] = ["all", () => {}] as any; // handled below
+              return (
+                <button key={t}
+                  id={`part-subtab-${t}`}
+                  onClick={() => {
+                    document.querySelectorAll('[id^="part-subtab-"]').forEach(el => el.classList.remove('bg-[#1A1A1A]', 'text-white'));
+                    document.getElementById(`part-subtab-${t}`)?.classList.add('bg-[#1A1A1A]', 'text-white');
+                    const allRows = document.querySelectorAll('[data-part-row]');
+                    allRows.forEach(row => {
+                      const status = row.getAttribute('data-status');
+                      if (t === 'all') (row as HTMLElement).style.display = '';
+                      else (row as HTMLElement).style.display = status === 'Pending' ? '' : 'none';
+                    });
+                  }}
+                  className="px-4 py-1.5 rounded-md text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-[#1A1A1A] transition">
+                  {t === "all" ? "All Records" : `Pending Queue (${pendingQueue.length})`}
+                </button>
+              );
+            })}
           </div>
 
           {/* Full participation table */}
-          <div className="border border-[#2A2A2A] rounded-xl overflow-hidden">
+          <div className="border border-[#2A2A2A] rounded-xl overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-[#111111] border-b border-[#2A2A2A]">
@@ -487,8 +500,8 @@ function SocialPageInner() {
                     </td>
                   </tr>
                 ) : (
-                  participations.map(p => (
-                    <tr key={p.id} className="hover:bg-[#111111] transition-colors">
+                    participations.map(p => (
+                    <tr key={p.id} data-part-row data-status={p.approvalStatus} className="hover:bg-[#111111] transition-colors">
                       <td className="px-5 py-3.5 font-medium text-white">{p.employeeName}</td>
                       <td className="px-5 py-3.5 text-[#9CA3AF]">{p.activity?.title ?? "—"}</td>
                       <td className="px-5 py-3.5">
@@ -547,7 +560,7 @@ function SocialPageInner() {
           </div>
 
           {/* Top KPI cards */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { label: "Female Employees", value: "42%",    emoji: "👩", sub: "of total workforce", color: "from-pink-500/20 to-pink-500/5", border: "border-pink-500/30" },
               { label: "Training Completion", value: "78%", emoji: "📚", sub: "completed this quarter", color: "from-blue-500/20 to-blue-500/5", border: "border-blue-500/30" },
@@ -672,9 +685,7 @@ function SocialPageInner() {
               </div>
             </div>
             <div className="flex gap-3 pt-2">
-              <DialogClose asChild>
-                <button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition">Cancel</button>
-              </DialogClose>
+              <DialogClose render={<button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition" />} >Cancel</DialogClose>
               <button type="submit" className="flex-1 bg-[#3B82F6] hover:bg-[#2563EB] text-white rounded-lg py-2 text-sm font-medium transition">
                 {editAct ? "Save Changes" : "Create Activity"}
               </button>
@@ -713,9 +724,7 @@ function SocialPageInner() {
                 <input type="date" value={joinForm.completionDate} onChange={e => setJoinForm({ ...joinForm, completionDate: e.target.value })} className={INPUT} />
               </div>
               <div className="flex gap-3 pt-2">
-                <DialogClose asChild>
-                  <button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition">Cancel</button>
-                </DialogClose>
+                <DialogClose render={<button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition" />} >Cancel</DialogClose>
                 <button type="submit" className="flex-1 bg-[#3B82F6] hover:bg-[#2563EB] text-white rounded-lg py-2 text-sm font-medium transition">
                   Confirm Join
                 </button>
@@ -754,9 +763,7 @@ function SocialPageInner() {
               <input type="date" value={partForm.completionDate} onChange={e => setPartForm({ ...partForm, completionDate: e.target.value })} className={INPUT} />
             </div>
             <div className="flex gap-3 pt-2">
-              <DialogClose asChild>
-                <button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition">Cancel</button>
-              </DialogClose>
+              <DialogClose render={<button type="button" className="flex-1 border border-[#2A2A2A] rounded-lg py-2 text-sm text-[#9CA3AF] hover:text-white transition" />} >Cancel</DialogClose>
               <button type="submit" className="flex-1 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg py-2 text-sm font-medium transition">
                 Log Participation
               </button>
@@ -779,3 +786,4 @@ export default function SocialPage() {
     </Suspense>
   );
 }
+

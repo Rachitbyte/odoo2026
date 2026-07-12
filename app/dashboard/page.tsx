@@ -16,6 +16,7 @@ import {
   Line,
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -243,7 +244,12 @@ export default function DashboardPage() {
                   contentStyle={{ backgroundColor: "#111", border: "1px solid #333", color: "#fff" }}
                   labelStyle={{ fontWeight: "bold" }}
                 />
-                <Bar dataKey="totalScore" name="Total Score" radius={[6, 6, 0, 0]} barSize={40} />
+                <Bar dataKey="totalScore" name="Total Score" radius={[6, 6, 0, 0]} barSize={40}>
+                  {deptScores.map((entry, index) => {
+                    const colors = ["#22C55E", "#3B82F6", "#F97316", "#A855F7", "#06B6D4"];
+                    return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                  })}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -297,7 +303,7 @@ export default function DashboardPage() {
               </Button>
             </Link>
 
-            <Link href="/gamification/challenges" className="w-full">
+            <Link href="/gamification" className="w-full">
               <Button className="w-full bg-[#F97316]/10 hover:bg-[#F97316]/20 text-[#F97316] border border-[#F97316]/30 rounded-xl py-6 flex items-center justify-between px-5 font-semibold group transition-all">
                 <span>Start Employee Challenge</span>
                 <ArrowUpRight className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />

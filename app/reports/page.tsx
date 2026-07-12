@@ -69,7 +69,7 @@ export default function ReportsPage() {
   const generateEnvironmentalReport = async () => {
     setLoadingReport("environmental");
     try {
-      const { jsPDF } = await import("jspdf");
+      const jsPDF = (await import("jspdf")).default;
       const doc = new jsPDF();
 
       // Fetch Data
@@ -199,7 +199,7 @@ export default function ReportsPage() {
   const generateSocialReport = async () => {
     setLoadingReport("social");
     try {
-      const { jsPDF } = await import("jspdf");
+      const jsPDF = (await import("jspdf")).default;
       const doc = new jsPDF();
 
       // Fetch CSR Activities and participation
@@ -283,7 +283,7 @@ export default function ReportsPage() {
   const generateGovernanceReport = async () => {
     setLoadingReport("governance");
     try {
-      const { jsPDF } = await import("jspdf");
+      const jsPDF = (await import("jspdf")).default;
       const doc = new jsPDF();
 
       // Fetch Audits and compliance issues
@@ -409,7 +409,7 @@ export default function ReportsPage() {
   const generateEsgSummaryReport = async () => {
     setLoadingReport("summary");
     try {
-      const { jsPDF } = await import("jspdf");
+      const jsPDF = (await import("jspdf")).default;
       const doc = new jsPDF();
 
       // Fetch Scores

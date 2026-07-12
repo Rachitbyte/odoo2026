@@ -25,23 +25,25 @@ export default function EnvironmentalLayout({
   return (
     <div className="space-y-6">
       {/* Sub-navigation Tabs */}
-      <div className="flex flex-wrap items-center gap-2 bg-[#1A1A1A] border border-[#2A2A2A] p-1 rounded-xl">
-        {tabs.map((tab) => {
-          const isActive = pathname === tab.href;
-          return (
-            <Link
-              key={tab.name}
-              href={tab.href}
-              className={`flex-1 min-w-[200px] text-center px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
-                isActive
-                  ? "bg-[#22C55E] text-black"
-                  : "text-[#9CA3AF] hover:text-white hover:bg-[#2A2A2A]"
-              }`}
-            >
-              {tab.name}
-            </Link>
-          );
-        })}
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-[#2A2A2A] scrollbar-track-transparent">
+        <div className="flex items-center gap-1 bg-[#1A1A1A] border border-[#2A2A2A] p-1 rounded-xl min-w-max">
+          {tabs.map((tab) => {
+            const isActive = pathname === tab.href;
+            return (
+              <Link
+                key={tab.name}
+                href={tab.href}
+                className={`whitespace-nowrap px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                  isActive
+                    ? "bg-[#22C55E] text-black"
+                    : "text-[#9CA3AF] hover:text-white hover:bg-[#2A2A2A]"
+                }`}
+              >
+                {tab.name}
+              </Link>
+            );
+          })}
+        </div>
       </div>
       
       {/* Page Content */}

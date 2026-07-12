@@ -175,7 +175,7 @@ export default function CustomReportBuilder() {
     }
     setLoading(true);
     try {
-      const { jsPDF } = await import("jspdf");
+      const jsPDF = (await import("jspdf")).default;
       const doc = new jsPDF();
 
       // Draw premium header

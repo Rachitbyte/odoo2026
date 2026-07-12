@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
 import {
   LayoutDashboard,
   Leaf,
@@ -30,8 +30,10 @@ interface NavItem {
   subItems?: SubItem[];
 }
 
-export default function Sidebar() {
+function SidebarInner() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get("tab");
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     Environmental: pathname.startsWith("/environmental"),
@@ -133,7 +135,6 @@ export default function Sidebar() {
 
           if (item.subItems) {
             const isOpen = openSections[item.name];
-            const subActiveColor = item.color.replace("text-", "");
 
             return (
               <div key={item.name} className="space-y-1">
@@ -163,8 +164,10 @@ export default function Sidebar() {
                   <div className="pl-9 space-y-0.5 mt-1 border-l border-[#2A2A2A] ml-6">
                     {item.subItems.map(sub => {
                       const isSubActive =
-                        pathname === sub.href ||
-                        (sub.href.includes("?") && pathname + "?tab=" + sub.href.split("?tab=")[1] === sub.href);
+                        (pathname === sub.href && !sub.href.includes("?")) ||
+                        (sub.href.includes("?tab=") && currentTab === sub.href.split("?tab=")[1]) ||
+                        (!sub.href.includes("?") && pathname === sub.href && !currentTab);
+
                       return (
                         <Link
                           key={sub.name}
@@ -219,5 +222,15 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
+  );
+}
+
+export default function Sidebar() {
+  return (
+    <Suspense fallback={
+      <aside className="w-64 bg-[#111111] border-r border-[#2A2A2A] h-screen fixed top-0 left-0 z-30" />
+    }>
+      <SidebarInner />
+    </Suspense>
   );
 }

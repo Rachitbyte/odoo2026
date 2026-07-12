@@ -105,6 +105,13 @@ function GovernancePageInner() {
     : "policies"
   );
 
+  useEffect(() => {
+    if (tabParam === "acknowledgements") setMainTab("acknowledgements");
+    else if (tabParam === "audits") setMainTab("audits");
+    else if (tabParam === "compliance") setMainTab("compliance");
+    else setMainTab("policies");
+  }, [tabParam]);
+
   const [policies, setPolicies]       = useState<ESGPolicy[]>([]);
   const [acks, setAcks]               = useState<PolicyAck[]>([]);
   const [audits, setAudits]           = useState<Audit[]>([]);

@@ -107,6 +107,12 @@ function SocialPageInner() {
     : "activities"
   );
 
+  useEffect(() => {
+    if (tabParam === "participation") setMainTab("participation");
+    else if (tabParam === "diversity") setMainTab("diversity");
+    else setMainTab("activities");
+  }, [tabParam]);
+
   const [activities, setActivities]         = useState<CSRActivity[]>([]);
   const [participations, setParticipations] = useState<EmployeeParticipation[]>([]);
   const [departments, setDepartments]       = useState<Department[]>([]);

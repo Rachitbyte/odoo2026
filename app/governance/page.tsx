@@ -100,7 +100,12 @@ function ExportMenu({ onCsv, onPdf }: { onCsv: () => void, onPdf: () => void }) 
   return (
     <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
       <button onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 bg-[#1A1A1A] border border-[#2A2A2A] text-[#9CA3AF] hover:text-white hover:border-[#3A3A3A] px-4 py-2 rounded-md text-sm font-medium transition-all">
+        className={`flex items-center gap-2 border px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${
+          open
+            ? "bg-[#2A2A2A] border-[#3A3A3A] text-white"
+            : "bg-[#1A1A1A] border-[#2A2A2A] text-[#9CA3AF] hover:bg-[#2A2A2A] hover:text-white hover:border-[#3A3A3A]"
+        }`}
+      >
         <Download className="w-4 h-4" /> Export ▼
       </button>
       

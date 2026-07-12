@@ -188,7 +188,11 @@ export default function EmissionFactorsPage() {
           <div className="relative">
             <Button
               onClick={() => setExportOpen(!exportOpen)}
-              className="bg-white hover:bg-gray-200 text-black border-none font-medium px-6 py-2 h-10 rounded-lg flex items-center gap-2 cursor-pointer"
+              className={`border font-medium px-6 py-2 h-10 rounded-lg flex items-center gap-2 cursor-pointer transition-all ${
+                exportOpen
+                  ? "bg-[#2A2A2A] border-[#3A3A3A] text-white"
+                  : "bg-[#1A1A1A] border-[#2A2A2A] text-[#9CA3AF] hover:bg-[#2A2A2A] hover:text-white hover:border-[#3A3A3A]"
+              }`}
             >
               <Download className="w-4 h-4" /> Export ▼
             </Button>

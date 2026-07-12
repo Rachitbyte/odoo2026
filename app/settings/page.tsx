@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Plus,
@@ -63,12 +64,20 @@ interface ESGConfig {
   govWeight: number;
 }
 
-export default function SettingsPage() {
+function SettingsPageInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tabParam = searchParams.get("tab") || "departments";
+
   // Navigation & Loading State
-  const [activeTab, setActiveTab] = useState("departments");
+  const [activeTab, setActiveTab] = useState(tabParam);
   const [loading, setLoading] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (tabParam) setActiveTab(tabParam);
+  }, [tabParam]);
 
   // Data States
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -315,7 +324,16 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs 
+        value={activeTab} 
+        onValueChange={(val) => {
+          setActiveTab(val);
+          const params = new URLSearchParams(searchParams.toString());
+          params.set("tab", val);
+          router.push(`?${params.toString()}`, { scroll: false });
+        }} 
+        className="w-full"
+      >
         <TabsList className="flex bg-transparent p-0 gap-2 mb-6 h-auto">
           <TabsTrigger
             value="departments"
@@ -925,6 +943,14 @@ export default function SettingsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-[#9CA3AF] flex items-center justify-center h-full"><Loader2 className="w-6 h-6 animate-spin mr-3" /> Loading settings...</div>}>
+      <SettingsPageInner />
+    </Suspense>
   );
 }
 

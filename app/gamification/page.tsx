@@ -425,12 +425,15 @@ function GamificationPageInner() {
     return c.status === challengeFilter;
   });
 
-  // Mock-aligned combined leaderboard to match layout design
-  const combinedLeaderboard = [
-    { rank: 1, name: "Manufacturing Dept", type: "dept", score: "4,820 XP" },
-    { rank: 2, name: "Aditi Rao", type: "employee", score: "3,910 XP" },
-    { rank: 3, name: "Corporate Dept", type: "dept", score: "3,505 XP" }
-  ];
+  // Dynamically generate the leaderboard widget from fetched data
+  const combinedLeaderboard = employeeLeaderboard
+    .slice(0, 5) // Show top 5 employees in the widget
+    .map((emp, index) => ({
+      rank: index + 1,
+      name: emp.employeeName,
+      type: "employee",
+      score: `${emp.totalXP} XP`,
+    }));
 
   return (
     <div className="space-y-6">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Plus, Pencil, Trash2, CheckCircle, Download,
@@ -131,6 +131,7 @@ const isOverdue = (dueDate: string, status: string) =>
 // ──────────────────────────────────────────────────────────────────────────────
 function GovernancePageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const tabParam = searchParams.get("tab");
 
   const [mainTab, setMainTab] = useState<"policies" | "acknowledgements" | "audits" | "compliance">(
@@ -359,7 +360,13 @@ function GovernancePageInner() {
           {TABS.map((tab, i) => (
             <button
               key={tab.key}
-              onClick={() => setMainTab(tab.key)}
+              onClick={() => {
+                setMainTab(tab.key as any);
+                const params = new URLSearchParams(searchParams.toString());
+                if (tab.key === "policies") params.delete("tab");
+                else params.set("tab", tab.key);
+                router.push(`?${params.toString()}`, { scroll: false });
+              }}
               className={`flex-1 py-3 px-5 text-sm font-medium transition-all duration-150 whitespace-nowrap ${
                 i < TABS.length - 1 ? "border-r border-[#2A2A2A]" : ""
               } ${

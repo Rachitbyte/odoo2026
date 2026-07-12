@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Plus, Pencil, Trash2, CheckCircle, XCircle,
@@ -97,6 +97,7 @@ function ConfirmDelete({ onConfirm, label }: { onConfirm: () => void; label: str
 // ──────────────────────────────────────────────────────────────────────────────
 function SocialPageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const tabParam = searchParams.get("tab");
 
   const [mainTab, setMainTab] = useState<"activities" | "participation" | "diversity">(
@@ -261,7 +262,13 @@ function SocialPageInner() {
           {TABS.map((tab, i) => (
             <button
               key={tab.key}
-              onClick={() => setMainTab(tab.key)}
+              onClick={() => {
+                setMainTab(tab.key as any);
+                const params = new URLSearchParams(searchParams.toString());
+                if (tab.key === "activities") params.delete("tab");
+                else params.set("tab", tab.key);
+                router.push(`?${params.toString()}`, { scroll: false });
+              }}
               className={`flex-1 py-3 px-5 text-sm font-medium transition-all duration-150 whitespace-nowrap ${
                 i < TABS.length - 1 ? "border-r border-[#2A2A2A]" : ""
               } ${

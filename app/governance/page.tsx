@@ -10,6 +10,9 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose
 } from "@/components/ui/dialog";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import { FileText, FileSpreadsheet } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface Department { id: number; name: string; }
@@ -84,6 +87,41 @@ function ConfirmDelete({ onConfirm, label }: { onConfirm: () => void; label: str
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─── Export Menu ───────────────────────────────────────────────────────────────
+function ExportMenu({ onCsv, onPdf }: { onCsv: () => void, onPdf: () => void }) {
+  const [open, setOpen] = useState(false);
+  
+  useEffect(() => {
+    const click = () => setOpen(false);
+    if (open) setTimeout(() => window.addEventListener("click", click), 0);
+    return () => window.removeEventListener("click", click);
+  }, [open]);
+
+  return (
+    <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
+      <button onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 bg-[#1A1A1A] border border-[#2A2A2A] text-[#9CA3AF] hover:text-white hover:border-[#3A3A3A] px-4 py-2 rounded-md text-sm font-medium transition-all">
+        <Download className="w-4 h-4" /> Export ▼
+      </button>
+      
+      {open && (
+        <div className="absolute right-0 mt-2 w-48 bg-[#1A1A1A] border border-[#2A2A2A] rounded-md shadow-xl z-50 overflow-hidden">
+          <div className="py-1">
+            <button onClick={() => { onCsv(); setOpen(false); }}
+              className="w-full text-left px-4 py-2.5 text-sm text-[#9CA3AF] hover:bg-[#2A2A2A] hover:text-white flex items-center gap-2 transition-colors">
+              <FileSpreadsheet className="w-4 h-4 text-green-400" /> Export as CSV
+            </button>
+            <button onClick={() => { onPdf(); setOpen(false); }}
+              className="w-full text-left px-4 py-2.5 text-sm text-[#9CA3AF] hover:bg-[#2A2A2A] hover:text-white flex items-center gap-2 transition-colors">
+              <FileText className="w-4 h-4 text-red-400" /> Export as PDF
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -240,8 +278,8 @@ function GovernancePageInner() {
     else toast.error("Failed to resolve");
   };
 
-  // ── Export CSV (audit) ──
-  const exportAudits = () => {
+  // ── Export CSV/PDF (audit) ──
+  const exportAuditsCsv = () => {
     const headers = ["Title", "Department", "Auditor", "Date", "Findings", "Status"];
     const rows = audits.map(a => [a.title, a.dept?.name ?? "", a.auditor,
       fmt(a.date), a.findings ?? "", a.status]);
@@ -254,8 +292,20 @@ function GovernancePageInner() {
     toast.success("Exported audits.csv");
   };
 
-  // ── Export CSV (policies) ──
-  const exportPolicies = () => {
+  const exportAuditsPdf = () => {
+    const doc = new jsPDF();
+    doc.text("Audits Report", 14, 15);
+    autoTable(doc, {
+      head: [["Title", "Department", "Auditor", "Date", "Status"]],
+      body: audits.map(a => [a.title, a.dept?.name ?? "", a.auditor, fmt(a.date), a.status]),
+      startY: 20
+    });
+    doc.save("audits.pdf");
+    toast.success("Exported audits.pdf");
+  };
+
+  // ── Export CSV/PDF (policies) ──
+  const exportPoliciesCsv = () => {
     const headers = ["Title", "Version", "Effective Date", "Department", "Status", "Acknowledgements"];
     const rows = policies.map(p => [p.title, p.version, fmt(p.effectiveDate),
       p.dept?.name ?? "Global", p.status, String(p.acknowledgements?.length ?? 0)]);
@@ -266,6 +316,18 @@ function GovernancePageInner() {
     link.href = url; link.download = "policies.csv"; link.click();
     URL.revokeObjectURL(url);
     toast.success("Exported policies.csv");
+  };
+
+  const exportPoliciesPdf = () => {
+    const doc = new jsPDF();
+    doc.text("Policies Report", 14, 15);
+    autoTable(doc, {
+      head: [["Title", "Version", "Effective Date", "Department", "Status"]],
+      body: policies.map(p => [p.title, p.version, fmt(p.effectiveDate), p.dept?.name ?? "Global", p.status]),
+      startY: 20
+    });
+    doc.save("policies.pdf");
+    toast.success("Exported policies.pdf");
   };
 
   const overdueCount = issues.filter(i => isOverdue(i.dueDate, i.status)).length;
@@ -324,10 +386,7 @@ function GovernancePageInner() {
               className="flex items-center gap-2 bg-[#1A1A1A] border border-[#3B82F6]/50 text-[#3B82F6] hover:bg-[#3B82F6]/10 px-4 py-2 rounded-md text-sm font-medium transition-all">
               <Plus className="w-4 h-4" /> New Policy
             </button>
-            <button onClick={exportPolicies}
-              className="flex items-center gap-2 bg-[#1A1A1A] border border-[#2A2A2A] text-[#9CA3AF] hover:text-white hover:border-[#3A3A3A] px-4 py-2 rounded-md text-sm font-medium transition-all">
-              <Download className="w-4 h-4" /> Export ▼
-            </button>
+            <ExportMenu onCsv={exportPoliciesCsv} onPdf={exportPoliciesPdf} />
           </div>
 
           {/* Policies table */}
@@ -480,10 +539,7 @@ function GovernancePageInner() {
               className="flex items-center gap-2 bg-[#1A1A1A] border border-[#3B82F6]/50 text-[#3B82F6] hover:bg-[#3B82F6]/10 px-4 py-2 rounded-md text-sm font-medium transition-all">
               <Plus className="w-4 h-4" /> New Audit
             </button>
-            <button onClick={exportAudits}
-              className="flex items-center gap-2 bg-[#1A1A1A] border border-[#2A2A2A] text-[#9CA3AF] hover:text-white hover:border-[#3A3A3A] px-4 py-2 rounded-md text-sm font-medium transition-all">
-              <Download className="w-4 h-4" /> Export ▼
-            </button>
+            <ExportMenu onCsv={exportAuditsCsv} onPdf={exportAuditsPdf} />
           </div>
 
           {/* Audits table */}

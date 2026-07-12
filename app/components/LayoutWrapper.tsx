@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Sidebar from "@/app/components/Sidebar";
+import TopNav from "@/app/components/TopNav";
 import { Menu, X } from "lucide-react";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
@@ -77,6 +78,9 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
             <span className="font-bold text-sm tracking-tight text-white">EcoSphere</span>
           </div>
         </div>
+
+        {/* Desktop Top Bar */}
+        <TopNav />
 
         <div className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-6">
           {children}

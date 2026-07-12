@@ -561,10 +561,76 @@ function ReportsPageInner() {
         </div>
       </div>
 
-      {/* 2x2 Grid of Report Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Card 1: Environmental */}
-        <Card className="bg-[#1A1A1A] border-[#2A2A2A] rounded-xl hover:border-[#22C55E]/30 transition-colors shadow-xl">
+      {/* Report Cards / Custom Builder */}
+      {activeTab === "custom" ? (
+        <div className="space-y-8">
+          {/* Custom Report Builder: Filters */}
+          <Card className="bg-[#141414] border-[#2A2A2A] rounded-2xl">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-white text-base flex items-center gap-2">
+                <Settings className="w-4 h-4 text-[#9CA3AF]" /> Custom Report Builder: Filters
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-3">
+                <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
+                  <option>Date Range</option>
+                  <option>Last 30 Days</option>
+                  <option>Last Quarter</option>
+                  <option>Year to Date</option>
+                </select>
+                <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
+                  <option>Department</option>
+                  <option>Manufacturing</option>
+                  <option>IT</option>
+                  <option>HR</option>
+                </select>
+                <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
+                  <option>Module</option>
+                  <option>Environmental</option>
+                  <option>Social</option>
+                  <option>Governance</option>
+                </select>
+                <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
+                  <option>Employee</option>
+                  <option>Aditi Rao</option>
+                  <option>Marcus Wright</option>
+                </select>
+                <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
+                  <option>Challenge</option>
+                  <option>Sustainability Sprint</option>
+                  <option>Recycle Challenge</option>
+                </select>
+                <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
+                  <option>ESG Category</option>
+                  <option>Energy</option>
+                  <option>Waste</option>
+                  <option>Diversity</option>
+                </select>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <Button className="bg-[#3B82F6] hover:bg-[#2563EB] text-white text-sm font-semibold px-4 py-1.5 rounded-lg flex items-center gap-2">
+                  <span className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-white border-b-[4px] border-b-transparent"></span>
+                  Run Report
+                </Button>
+                <Button variant="outline" className="bg-[#0D0D0D] border-[#2A2A2A] hover:bg-[#1A1A1A] hover:text-white text-[#9CA3AF] text-sm px-4 py-1.5 rounded-lg">
+                  Export: PDF
+                </Button>
+                <Button variant="outline" className="bg-[#0D0D0D] border-[#2A2A2A] hover:bg-[#1A1A1A] hover:text-white text-[#9CA3AF] text-sm px-4 py-1.5 rounded-lg">
+                  Export: Excel
+                </Button>
+                <Button variant="outline" className="bg-[#0D0D0D] border-[#2A2A2A] hover:bg-[#1A1A1A] hover:text-white text-[#9CA3AF] text-sm px-4 py-1.5 rounded-lg">
+                  Export: CSV
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {activeTab === "environmental" && (
+            <Card className="bg-[#1A1A1A] border-[#2A2A2A] rounded-xl hover:border-[#22C55E]/30 transition-colors shadow-xl">
           <CardHeader>
             <CardTitle className="text-white text-lg flex items-center gap-2">
               <FileText className="w-5 h-5 text-[#22C55E]" /> Environmental (Pillar E) Report
@@ -589,8 +655,10 @@ function ReportsPageInner() {
             </Button>
           </CardContent>
         </Card>
+        )}
 
         {/* Card 2: Social */}
+        {activeTab === "social" && (
         <Card className="bg-[#1A1A1A] border-[#2A2A2A] rounded-xl hover:border-[#F97316]/30 transition-colors shadow-xl">
           <CardHeader>
             <CardTitle className="text-white text-lg flex items-center gap-2">
@@ -616,8 +684,10 @@ function ReportsPageInner() {
             </Button>
           </CardContent>
         </Card>
+        )}
 
         {/* Card 3: Governance */}
+        {activeTab === "governance" && (
         <Card className="bg-[#1A1A1A] border-[#2A2A2A] rounded-xl hover:border-[#3B82F6]/30 transition-colors shadow-xl">
           <CardHeader>
             <CardTitle className="text-white text-lg flex items-center gap-2">
@@ -643,8 +713,10 @@ function ReportsPageInner() {
             </Button>
           </CardContent>
         </Card>
+        )}
 
         {/* Card 4: ESG Summary */}
+        {activeTab === "summary" && (
         <Card className="bg-[#1A1A1A] border-[#2A2A2A] rounded-xl hover:border-[#A855F7]/30 transition-colors shadow-xl">
           <CardHeader>
             <CardTitle className="text-white text-lg flex items-center gap-2">
@@ -670,70 +742,9 @@ function ReportsPageInner() {
             </Button>
           </CardContent>
         </Card>
+        )}
       </div>
-
-      {/* Custom Report Builder: Filters */}
-      <Card className="bg-[#141414] border-[#2A2A2A] rounded-2xl">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-white text-base flex items-center gap-2">
-            <Settings className="w-4 h-4 text-[#9CA3AF]" /> Custom Report Builder: Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-3">
-            <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
-              <option>Date Range</option>
-              <option>Last 30 Days</option>
-              <option>Last Quarter</option>
-              <option>Year to Date</option>
-            </select>
-            <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
-              <option>Department</option>
-              <option>Manufacturing</option>
-              <option>IT</option>
-              <option>HR</option>
-            </select>
-            <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
-              <option>Module</option>
-              <option>Environmental</option>
-              <option>Social</option>
-              <option>Governance</option>
-            </select>
-            <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
-              <option>Employee</option>
-              <option>Aditi Rao</option>
-              <option>Marcus Wright</option>
-            </select>
-            <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
-              <option>Challenge</option>
-              <option>Sustainability Sprint</option>
-              <option>Recycle Challenge</option>
-            </select>
-            <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
-              <option>ESG Category</option>
-              <option>Energy</option>
-              <option>Waste</option>
-              <option>Diversity</option>
-            </select>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <Button className="bg-[#3B82F6] hover:bg-[#2563EB] text-white text-sm font-semibold px-4 py-1.5 rounded-lg flex items-center gap-2">
-              <span className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-white border-b-[4px] border-b-transparent"></span>
-              Run Report
-            </Button>
-            <Button variant="outline" className="bg-[#0D0D0D] border-[#2A2A2A] hover:bg-[#1A1A1A] hover:text-white text-[#9CA3AF] text-sm px-4 py-1.5 rounded-lg">
-              Export: PDF
-            </Button>
-            <Button variant="outline" className="bg-[#0D0D0D] border-[#2A2A2A] hover:bg-[#1A1A1A] hover:text-white text-[#9CA3AF] text-sm px-4 py-1.5 rounded-lg">
-              Export: Excel
-            </Button>
-            <Button variant="outline" className="bg-[#0D0D0D] border-[#2A2A2A] hover:bg-[#1A1A1A] hover:text-white text-[#9CA3AF] text-sm px-4 py-1.5 rounded-lg">
-              Export: CSV
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      )}
     </div>
   );
 }

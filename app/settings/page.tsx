@@ -548,6 +548,44 @@ function SettingsPageInner() {
 
         {/* -------------------- ESG CONFIGURATION TAB -------------------- */}
         <TabsContent value="esg-config" className="space-y-6">
+          <div className="mb-6">
+            <h3 className="text-[#9CA3AF] text-sm font-medium mb-4">ESG Configuration</h3>
+            <div className="space-y-4 max-w-md">
+              {/* Toggle 1 */}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => handleToggleConfig("autoEmissionCalc", !esgConfig.autoEmissionCalc)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-md bg-[#9CA3AF] transition-colors focus:outline-none"
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-md bg-[#111111] transition-transform ${esgConfig.autoEmissionCalc ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+                <p className="text-sm text-[#D1D5DB]">Enable auto emission calculation</p>
+              </div>
+
+              {/* Toggle 2 */}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => handleToggleConfig("requireCsrEvidence", !esgConfig.requireCsrEvidence)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-md bg-[#9CA3AF] transition-colors focus:outline-none"
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-md bg-[#111111] transition-transform ${esgConfig.requireCsrEvidence ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+                <p className="text-sm text-[#D1D5DB]">Require evidence for all CSR activities</p>
+              </div>
+
+              {/* Toggle 3 */}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => handleToggleConfig("autoBadgeAward", !esgConfig.autoBadgeAward)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-md bg-[#9CA3AF] transition-colors focus:outline-none"
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-md bg-[#111111] transition-transform ${esgConfig.autoBadgeAward ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+                <p className="text-sm text-[#D1D5DB]">Auto-award badges on challenge completion</p>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Weights Card */}
             <div className="space-y-4">
@@ -632,7 +670,22 @@ function SettingsPageInner() {
         </TabsContent>
 
         {/* -------------------- NOTIFICATIONS TAB -------------------- */}
-        <TabsContent value="notifications">
+        <TabsContent value="notifications" className="space-y-6">
+          <div className="mb-2">
+            <h3 className="text-[#9CA3AF] text-sm font-medium mb-4">Notification Settings</h3>
+            <div className="space-y-4 max-w-md">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => handleToggleConfig("emailAlerts", !esgConfig.emailAlerts)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-md bg-[#9CA3AF] transition-colors focus:outline-none"
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-md bg-[#111111] transition-transform ${esgConfig.emailAlerts ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+                <p className="text-sm text-[#D1D5DB]">Email alerts for new compliance issues</p>
+              </div>
+            </div>
+          </div>
+
           <Card className="bg-[#1A1A1A] border-[#2A2A2A] text-center p-12">
             <CardContent className="flex flex-col items-center justify-center space-y-4">
               <div className="w-16 h-16 rounded-full bg-[#2A2A2A] flex items-center justify-center text-[#9CA3AF]">
@@ -647,55 +700,7 @@ function SettingsPageInner() {
         </TabsContent>
       </Tabs>
 
-      {/* Global ESG Configuration & Notifications Section */}
-      <div className="pt-8">
-        <h3 className="text-[#9CA3AF] text-sm font-medium mb-4">ESG Configuration & Notifications</h3>
-        <div className="space-y-4 max-w-md">
-          {/* Toggle 1 */}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => handleToggleConfig("autoEmissionCalc", !esgConfig.autoEmissionCalc)}
-              className="relative inline-flex h-6 w-11 items-center rounded-md bg-[#9CA3AF] transition-colors focus:outline-none"
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-md bg-[#111111] transition-transform ${esgConfig.autoEmissionCalc ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-            <p className="text-sm text-[#D1D5DB]">Enable auto emission calculation</p>
-          </div>
 
-          {/* Toggle 2 */}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => handleToggleConfig("requireCsrEvidence", !esgConfig.requireCsrEvidence)}
-              className="relative inline-flex h-6 w-11 items-center rounded-md bg-[#9CA3AF] transition-colors focus:outline-none"
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-md bg-[#111111] transition-transform ${esgConfig.requireCsrEvidence ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-            <p className="text-sm text-[#D1D5DB]">Require evidence for all CSR activities</p>
-          </div>
-
-          {/* Toggle 3 */}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => handleToggleConfig("autoBadgeAward", !esgConfig.autoBadgeAward)}
-              className="relative inline-flex h-6 w-11 items-center rounded-md bg-[#9CA3AF] transition-colors focus:outline-none"
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-md bg-[#111111] transition-transform ${esgConfig.autoBadgeAward ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-            <p className="text-sm text-[#D1D5DB]">Auto-award badges on challenge completion</p>
-          </div>
-
-          {/* Toggle 4 */}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => handleToggleConfig("emailAlerts", !esgConfig.emailAlerts)}
-              className="relative inline-flex h-6 w-11 items-center rounded-md bg-[#9CA3AF] transition-colors focus:outline-none"
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-md bg-[#111111] transition-transform ${esgConfig.emailAlerts ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-            <p className="text-sm text-[#D1D5DB]">Email alerts for new compliance issues</p>
-          </div>
-        </div>
-      </div>
 
       {/* ==================== DIALOGS / MODALS ==================== */}
 

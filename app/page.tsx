@@ -84,11 +84,6 @@ export default function LandingPage() {
           </div>
           <span className="font-bold text-xl tracking-tight text-white">EcoSphere</span>
         </div>
-        <Link href="/dashboard">
-          <button className="text-sm font-medium text-[#9CA3AF] hover:text-white transition-colors">
-            Sign In
-          </button>
-        </Link>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 pt-32 pb-24">

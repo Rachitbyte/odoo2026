@@ -105,6 +105,16 @@ async function main() {
   await prisma.departmentScore.create({ data: { deptId: it.id, environmentalScore: 88.0, socialScore: 75.5, governanceScore: 92.0, totalScore: 85.1 }});
   await prisma.departmentScore.create({ data: { deptId: hr.id, environmentalScore: 90.0, socialScore: 95.0, governanceScore: 88.0, totalScore: 91.0 }});
 
+  console.log("Seeding Gamification Challenges & Participations...");
+  const challenge1 = await prisma.challenge.create({ data: { title: "Zero Waste Week", categoryId: chalEnergy.id, description: "Produce zero non-recyclable waste at your desk for a full week.", xp: 200, difficulty: "Hard", evidenceRequired: true, deadline: new Date("2026-08-01T00:00:00Z"), status: "Active" }});
+  const challenge2 = await prisma.challenge.create({ data: { title: "Cycle to Work", categoryId: chalCommute.id, description: "Commute to work via bicycle at least 3 days a week.", xp: 150, difficulty: "Medium", evidenceRequired: true, deadline: new Date("2026-09-15T00:00:00Z"), status: "Active" }});
+  const challenge3 = await prisma.challenge.create({ data: { title: "Meatless Mondays", categoryId: chalEnergy.id, description: "Commit to plant-based meals every Monday for a month.", xp: 100, difficulty: "Easy", evidenceRequired: false, deadline: new Date("2026-10-01T00:00:00Z"), status: "Active" }});
+
+  await prisma.challengeParticipation.create({ data: { challengeId: challenge1.id, employeeName: "Sarah Jenkins", progress: 100, proofUrl: "https://example.com/proof/sarah", approvalStatus: "Approved", xpAwarded: 200 }});
+  await prisma.challengeParticipation.create({ data: { challengeId: challenge1.id, employeeName: "David Chen", progress: 50, approvalStatus: "Pending", xpAwarded: 0 }});
+  await prisma.challengeParticipation.create({ data: { challengeId: challenge2.id, employeeName: "Marcus Wright", progress: 100, proofUrl: "https://example.com/proof/marcus", approvalStatus: "Approved", xpAwarded: 150 }});
+  await prisma.challengeParticipation.create({ data: { challengeId: challenge3.id, employeeName: "Elena Rodriguez", progress: 100, approvalStatus: "Pending", xpAwarded: 0 }});
+
   console.log("Seeding Badges and Rewards...");
   await prisma.badge.create({ data: { name: "Green Pioneer", description: "Completed 5 Environmental challenges.", unlockRule: "complete_5_env", icon: "🌱" }});
   await prisma.badge.create({ data: { name: "Community Leader", description: "Earned 500 CSR Points.", unlockRule: "earn_500_csr", icon: "🌟" }});

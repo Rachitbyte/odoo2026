@@ -44,6 +44,7 @@ function SidebarInner({ onClose }: SidebarProps) {
     Environmental: pathname.startsWith("/environmental"),
     Social:        pathname.startsWith("/social"),
     Governance:    pathname.startsWith("/governance"),
+    Gamification:  pathname.startsWith("/gamification"),
   });
 
   const toggle = (name: string) =>
@@ -101,6 +102,13 @@ function SidebarInner({ onClose }: SidebarProps) {
       icon: Trophy,
       color: "text-[#A855F7]",
       bgColor: "bg-[#A855F7]/10 border-l-2 border-[#A855F7]",
+      subItems: [
+        { name: "Challenges", href: "/gamification" },
+        { name: "Challenge Participation", href: "/gamification?tab=participation" },
+        { name: "Badges", href: "/gamification?tab=badges" },
+        { name: "Rewards", href: "/gamification?tab=rewards" },
+        { name: "Leaderboard", href: "/gamification?tab=leaderboard" },
+      ],
     },
     {
       name: "Reports",

@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Plus, Edit2, Trash2, Leaf, Loader2 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Search, Loader2, ChevronDown, Eye, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import Papa from "papaparse";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface EmissionFactor {
   id: number;
@@ -20,10 +22,18 @@ interface EmissionFactor {
 export default function EmissionFactorsPage() {
   const [factors, setFactors] = useState<EmissionFactor[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // Selection & Search
+  const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
   const [modalOpen, setModalOpen] = useState(false);
   const [currentFactor, setCurrentFactor] = useState<Partial<EmissionFactor>>({});
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [factorToDelete, setFactorToDelete] = useState<number | null>(null);
+  
+  // View & Export
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const fetchFactors = async () => {
     try {
@@ -60,6 +70,7 @@ export default function EmissionFactorsPage() {
         toast.success(currentFactor.id ? "Emission Factor updated" : "Emission Factor created");
         setModalOpen(false);
         fetchFactors();
+        setSelectedRowId(null);
       } else {
         const err = await res.json();
         toast.error(err.error || "Failed to save");
@@ -72,13 +83,14 @@ export default function EmissionFactorsPage() {
   };
 
   const handleDelete = async () => {
-    if (!factorToDelete) return;
+    if (!selectedRowId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/emission-factors/${factorToDelete}`, { method: "DELETE" });
+      const res = await fetch(`/api/emission-factors/${selectedRowId}`, { method: "DELETE" });
       if (res.ok) {
         toast.success("Emission Factor deleted");
         setDeleteConfirmOpen(false);
+        setSelectedRowId(null);
         fetchFactors();
       } else {
         toast.error("Failed to delete");
@@ -90,89 +102,193 @@ export default function EmissionFactorsPage() {
     }
   };
 
+  const handleView = () => {
+    if (!selectedRowId) {
+      toast.error("Please select a row first");
+      return;
+    }
+    setViewModalOpen(true);
+  };
+
+  const handleExportCSV = () => {
+    const csv = Papa.unparse(factors.map(f => ({
+      Name: f.name,
+      Source: f.source,
+      Value: f.factorValue,
+      Unit: f.unit
+    })));
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "emission-factors.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Emission Factors", 14, 15);
+    autoTable(doc, {
+      head: [["Name", "Source", "Value", "Unit"]],
+      body: factors.map(f => [f.name, f.source, f.factorValue.toString(), f.unit]),
+      startY: 20,
+    });
+    doc.save("emission-factors.pdf");
+  };
+
+  const filteredFactors = factors.filter(f => 
+    f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    f.source.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const selectedFactor = factors.find(f => f.id === selectedRowId);
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2A2A2A] pb-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-            <Leaf className="w-8 h-8 text-[#22C55E]" /> Emission Factors
-          </h2>
-          <p className="text-[#9CA3AF] text-sm mt-1">
-            Manage global CO2 emission multipliers for calculations.
-          </p>
+    <div className="space-y-4">
+      {/* Action Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={() => {
+              setCurrentFactor({ name: "", source: "Expense", factorValue: 0, unit: "kg CO2e" });
+              setModalOpen(true);
+            }}
+            className="bg-[#22C55E] hover:bg-[#1eb053] text-black font-medium px-6 py-2 h-10 rounded-lg"
+          >
+            + New Factor
+          </Button>
+          <Button
+            onClick={() => {
+              if (selectedFactor) {
+                setCurrentFactor(selectedFactor);
+                setModalOpen(true);
+              }
+            }}
+            disabled={!selectedRowId}
+            className="bg-[#F97316] hover:bg-[#ea580c] text-white font-medium px-6 py-2 h-10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Edit
+          </Button>
+          <Button
+            onClick={() => setDeleteConfirmOpen(true)}
+            disabled={!selectedRowId}
+            className="bg-[#EF4444] hover:bg-[#dc2626] text-white font-medium px-6 py-2 h-10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Delete
+          </Button>
+          <div className="relative">
+            <Button
+              variant="outline"
+              onClick={() => setExportOpen(!exportOpen)}
+              className="bg-[#9CA3AF] hover:bg-[#6B7280] text-black border-none font-medium px-6 py-2 h-10 rounded-lg flex items-center gap-2"
+            >
+              Export <ChevronDown className="w-4 h-4 opacity-50" />
+            </Button>
+            {exportOpen && (
+              <div className="absolute left-0 mt-2 w-40 bg-[#111111] border border-[#2A2A2A] rounded-md shadow-lg z-10 py-1">
+                <button onClick={() => { handleExportCSV(); setExportOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#2A2A2A]">Export CSV</button>
+                <button onClick={() => { handleExportPDF(); setExportOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#2A2A2A]">Export PDF</button>
+              </div>
+            )}
+          </div>
         </div>
-        <Button
-          onClick={() => {
-            setCurrentFactor({ name: "", source: "Expense", factorValue: 0, unit: "kg CO2e" });
-            setModalOpen(true);
-          }}
-          className="bg-[#22C55E] hover:bg-[#1eb053] text-black font-semibold rounded-lg flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" /> New Factor
-        </Button>
+        
+        <div className="relative w-full md:w-64">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+          <input 
+            type="text" 
+            placeholder="Search factors..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#111111] border border-[#2A2A2A] rounded-full pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-[#22C55E]"
+          />
+        </div>
       </div>
 
-      <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden shadow-2xl">
+      <div className="bg-[#111111] border border-[#2A2A2A] rounded-xl overflow-hidden">
         <Table>
-          <TableHeader className="bg-[#111111] border-b border-[#2A2A2A]">
-            <TableRow className="border-b border-[#2A2A2A] hover:bg-transparent">
+          <TableHeader>
+            <TableRow className="border-b border-[#2A2A2A] hover:bg-transparent bg-[#111111]">
               <TableHead className="text-white font-medium">Name</TableHead>
               <TableHead className="text-white font-medium">Source</TableHead>
               <TableHead className="text-white font-medium text-right">Value</TableHead>
-              <TableHead className="text-white font-medium text-right">Unit</TableHead>
-              <TableHead className="text-white font-medium text-right">Actions</TableHead>
+              <TableHead className="text-white font-medium">Unit</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {factors.length === 0 ? (
+            {filteredFactors.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-10 text-[#9CA3AF]">
+                <TableCell colSpan={4} className="text-center py-10 text-[#9CA3AF]">
                   No emission factors configured yet.
                 </TableCell>
               </TableRow>
             ) : (
-              factors.map((factor) => (
-                <TableRow key={factor.id} className="border-b border-[#2A2A2A]/50 hover:bg-[#22C55E]/5 transition-colors">
-                  <TableCell className="font-semibold text-white">{factor.name}</TableCell>
-                  <TableCell>
-                    <Badge className="bg-[#2A2A2A] text-white border border-[#3A3A3A]">
-                      {factor.source}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-[#22C55E] font-medium">{factor.factorValue}</TableCell>
-                  <TableCell className="text-right text-[#9CA3AF]">{factor.unit}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setCurrentFactor(factor);
-                          setModalOpen(true);
-                        }}
-                        className="text-[#9CA3AF] hover:text-white hover:bg-[#2A2A2A] h-8 w-8 rounded-lg"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setFactorToDelete(factor.id);
-                          setDeleteConfirmOpen(true);
-                        }}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 rounded-lg"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+              filteredFactors.map((factor) => {
+                const isSelected = selectedRowId === factor.id;
+                
+                return (
+                  <TableRow 
+                    key={factor.id} 
+                    onClick={() => setSelectedRowId(isSelected ? null : factor.id)}
+                    className={`border-b border-[#2A2A2A]/50 cursor-pointer transition-colors ${
+                      isSelected ? "bg-[#22C55E]/10" : "hover:bg-[#2A2A2A]"
+                    }`}
+                  >
+                    <TableCell className="font-semibold text-white">{factor.name}</TableCell>
+                    <TableCell>
+                      <Badge className="bg-[#2A2A2A] text-white border border-[#3A3A3A]">
+                        {factor.source}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-[#22C55E] font-medium">{factor.factorValue}</TableCell>
+                    <TableCell className="text-[#9CA3AF]">{factor.unit}</TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
       </div>
+
+      <div className="flex items-center gap-3 text-xs text-[#9CA3AF] mt-2 px-1">
+        <button onClick={handleView} className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Eye className="w-3 h-3 text-[#F97316]" /> View</button>
+        <button onClick={() => { if(selectedFactor){ setCurrentFactor(selectedFactor); setModalOpen(true); } else toast.error("Please select a row first") }} className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Edit2 className="w-3 h-3 text-[#F97316]" /> Edit</button>
+        <button onClick={() => { if(selectedRowId){ setDeleteConfirmOpen(true); } else toast.error("Please select a row first") }} className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Trash2 className="w-3 h-3 text-[#9CA3AF]" /> Delete</button>
+      </div>
+
+      {/* View Modal */}
+      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
+        <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white">
+          <DialogHeader>
+            <DialogTitle>View Emission Factor</DialogTitle>
+          </DialogHeader>
+          {selectedFactor && (
+            <div className="space-y-4 my-4">
+              <div>
+                <label className="text-xs font-semibold text-[#9CA3AF]">Name</label>
+                <div className="text-sm text-white mt-1">{selectedFactor.name}</div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#9CA3AF]">Source</label>
+                <div className="text-sm text-white mt-1">{selectedFactor.source}</div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#9CA3AF]">Factor Value</label>
+                <div className="text-sm text-white mt-1">{selectedFactor.factorValue}</div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#9CA3AF]">Unit</label>
+                <div className="text-sm text-white mt-1">{selectedFactor.unit}</div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setViewModalOpen(false)} className="text-white hover:bg-[#2A2A2A]">Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* CRUD Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>

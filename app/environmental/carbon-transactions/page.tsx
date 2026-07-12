@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Plus, List, Loader2, ArrowRight } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Search, Loader2, ChevronDown, Eye, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import Papa from "papaparse";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Department {
   id: number;
@@ -41,8 +43,16 @@ export default function CarbonTransactionsPage() {
   const [emissionFactors, setEmissionFactors] = useState<EmissionFactor[]>([]);
   const [loading, setLoading] = useState(false);
   
+  // Selection & Search
+  const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  
   const [modalOpen, setModalOpen] = useState(false);
   const [currentTx, setCurrentTx] = useState<Partial<CarbonTransaction>>({});
+
+  // View & Export
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -91,38 +101,114 @@ export default function CarbonTransactionsPage() {
     }
   };
 
+  const handleView = () => {
+    if (!selectedRowId) {
+      toast.error("Please select a row first");
+      return;
+    }
+    setViewModalOpen(true);
+  };
+
+  const handleExportCSV = () => {
+    const csv = Papa.unparse(transactions.map(t => ({
+      Date: new Date(t.transactionDate).toLocaleDateString(),
+      Source: t.source,
+      RefID: t.refId || "",
+      Department: t.dept?.name || "Unknown",
+      EmissionFactor: t.emissionFactor?.name || "",
+      Quantity: t.quantity,
+      CO2Generated: t.co2Amount
+    })));
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "carbon-transactions.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Carbon Transactions", 14, 15);
+    autoTable(doc, {
+      head: [["Date", "Source", "Ref ID", "Department", "Factor", "Qty", "CO2 Generated"]],
+      body: transactions.map(t => [
+        new Date(t.transactionDate).toLocaleDateString(),
+        t.source,
+        t.refId || "-",
+        t.dept?.name || "Unknown",
+        t.emissionFactor?.name || "-",
+        t.quantity.toString(),
+        t.co2Amount.toString() + " kg"
+      ]),
+      startY: 20,
+    });
+    doc.save("carbon-transactions.pdf");
+  };
+
+  const filteredTransactions = transactions.filter(t => 
+    t.source.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.refId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.dept?.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const selectedTx = transactions.find(t => t.id === selectedRowId);
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2A2A2A] pb-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-            <List className="w-8 h-8 text-[#22C55E]" /> Carbon Transactions Ledger
-          </h2>
-          <p className="text-[#9CA3AF] text-sm mt-1">
-            Immutable log of all carbon-emitting activities across the organization.
-          </p>
+    <div className="space-y-4">
+      {/* Action Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={() => {
+              setCurrentTx({ 
+                source: "Manual Entry", 
+                deptId: departments[0]?.id || 0, 
+                emissionFactorId: emissionFactors[0]?.id || 0,
+                quantity: 0,
+                transactionDate: new Date().toISOString().split("T")[0] 
+              });
+              setModalOpen(true);
+            }}
+            className="bg-[#22C55E] hover:bg-[#1eb053] text-black font-medium px-6 py-2 h-10 rounded-lg"
+          >
+            + Log Transaction
+          </Button>
+          <div className="relative">
+            <Button
+              variant="outline"
+              onClick={() => setExportOpen(!exportOpen)}
+              className="bg-[#9CA3AF] hover:bg-[#6B7280] text-black border-none font-medium px-6 py-2 h-10 rounded-lg flex items-center gap-2"
+            >
+              Export <ChevronDown className="w-4 h-4 opacity-50" />
+            </Button>
+            {exportOpen && (
+              <div className="absolute left-0 mt-2 w-40 bg-[#111111] border border-[#2A2A2A] rounded-md shadow-lg z-10 py-1">
+                <button onClick={() => { handleExportCSV(); setExportOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#2A2A2A]">Export CSV</button>
+                <button onClick={() => { handleExportPDF(); setExportOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#2A2A2A]">Export PDF</button>
+              </div>
+            )}
+          </div>
         </div>
-        <Button
-          onClick={() => {
-            setCurrentTx({ 
-              source: "Manual Entry", 
-              deptId: departments[0]?.id || 0, 
-              emissionFactorId: emissionFactors[0]?.id || 0,
-              quantity: 0,
-              transactionDate: new Date().toISOString().split("T")[0] 
-            });
-            setModalOpen(true);
-          }}
-          className="bg-[#22C55E] hover:bg-[#1eb053] text-black font-semibold rounded-lg flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" /> Log Transaction
-        </Button>
+        
+        <div className="relative w-full md:w-64">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+          <input 
+            type="text" 
+            placeholder="Search transactions..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#111111] border border-[#2A2A2A] rounded-full pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-[#22C55E]"
+          />
+        </div>
       </div>
 
-      <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden shadow-2xl">
+      <div className="bg-[#111111] border border-[#2A2A2A] rounded-xl overflow-hidden">
         <Table>
-          <TableHeader className="bg-[#111111] border-b border-[#2A2A2A]">
-            <TableRow className="border-b border-[#2A2A2A] hover:bg-transparent">
+          <TableHeader>
+            <TableRow className="border-b border-[#2A2A2A] hover:bg-transparent bg-[#111111]">
               <TableHead className="text-white font-medium">Date</TableHead>
               <TableHead className="text-white font-medium">Source / Ref ID</TableHead>
               <TableHead className="text-white font-medium">Department</TableHead>
@@ -132,41 +218,101 @@ export default function CarbonTransactionsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.length === 0 ? (
+            {filteredTransactions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-10 text-[#9CA3AF]">
                   No carbon transactions logged yet.
                 </TableCell>
               </TableRow>
             ) : (
-              transactions.map((tx) => (
-                <TableRow key={tx.id} className="border-b border-[#2A2A2A]/50 hover:bg-[#22C55E]/5 transition-colors">
-                  <TableCell className="text-[#9CA3AF] whitespace-nowrap">
-                    {new Date(tx.transactionDate).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-semibold text-white">{tx.source}</div>
-                    {tx.refId && <div className="text-xs text-[#9CA3AF] font-mono">Ref: {tx.refId}</div>}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className="bg-[#2A2A2A] text-white border border-[#3A3A3A]">
-                      {tx.dept?.name || "Unknown"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm text-white">{tx.emissionFactor?.name}</div>
-                    <div className="text-xs text-[#9CA3AF]">{tx.emissionFactor?.factorValue} {tx.emissionFactor?.unit}</div>
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-white">{tx.quantity.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">
-                    <span className="font-mono text-[#22C55E] font-bold">+{tx.co2Amount.toLocaleString()} kg</span>
-                  </TableCell>
-                </TableRow>
-              ))
+              filteredTransactions.map((tx) => {
+                const isSelected = selectedRowId === tx.id;
+
+                return (
+                  <TableRow 
+                    key={tx.id} 
+                    onClick={() => setSelectedRowId(isSelected ? null : tx.id)}
+                    className={`border-b border-[#2A2A2A]/50 cursor-pointer transition-colors ${
+                      isSelected ? "bg-[#22C55E]/10" : "hover:bg-[#2A2A2A]"
+                    }`}
+                  >
+                    <TableCell className="text-[#9CA3AF] whitespace-nowrap">
+                      {new Date(tx.transactionDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-semibold text-white">{tx.source}</div>
+                      {tx.refId && <div className="text-xs text-[#9CA3AF] font-mono">Ref: {tx.refId}</div>}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className="bg-[#2A2A2A] text-white border border-[#3A3A3A]">
+                        {tx.dept?.name || "Unknown"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-white">{tx.emissionFactor?.name}</div>
+                      <div className="text-xs text-[#9CA3AF]">{tx.emissionFactor?.factorValue} {tx.emissionFactor?.unit}</div>
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-white">{tx.quantity.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-mono text-[#22C55E] font-bold">+{tx.co2Amount.toLocaleString()} kg</span>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
       </div>
+
+      <div className="flex items-center gap-3 text-xs text-[#9CA3AF] mt-2 px-1">
+        <button onClick={handleView} className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Eye className="w-3 h-3 text-[#F97316]" /> View</button>
+        <span>•</span>
+        <span>Transactions are immutable and cannot be edited or deleted.</span>
+      </div>
+
+      {/* View Modal */}
+      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
+        <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white">
+          <DialogHeader>
+            <DialogTitle>View Carbon Transaction</DialogTitle>
+          </DialogHeader>
+          {selectedTx && (
+            <div className="space-y-4 my-4 grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-[#9CA3AF]">Source</label>
+                <div className="text-sm text-white mt-1">{selectedTx.source}</div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#9CA3AF]">Ref ID</label>
+                <div className="text-sm text-white mt-1">{selectedTx.refId || "N/A"}</div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#9CA3AF]">Department</label>
+                <div className="text-sm text-white mt-1">{selectedTx.dept?.name || "Unknown"}</div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#9CA3AF]">Transaction Date</label>
+                <div className="text-sm text-white mt-1">{new Date(selectedTx.transactionDate).toLocaleDateString()}</div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#9CA3AF]">Emission Factor</label>
+                <div className="text-sm text-white mt-1">{selectedTx.emissionFactor?.name}</div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#9CA3AF]">Quantity</label>
+                <div className="text-sm text-white mt-1">{selectedTx.quantity}</div>
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs font-semibold text-[#9CA3AF]">Total CO2 Generated</label>
+                <div className="text-sm text-[#22C55E] mt-1 font-bold">+{selectedTx.co2Amount.toLocaleString()} kg</div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setViewModalOpen(false)} className="text-white hover:bg-[#2A2A2A]">Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Manual Entry Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
@@ -255,8 +401,7 @@ export default function CarbonTransactionsPage() {
             {/* Live Calculation Preview */}
             <div className="bg-[#22C55E]/10 border border-[#22C55E]/30 rounded-lg p-3 flex items-center justify-between">
               <div className="text-sm text-[#9CA3AF]">Estimated CO2 Output:</div>
-              <div className="text-lg font-bold text-[#22C55E] flex items-center gap-2">
-                <ArrowRight className="w-4 h-4" /> 
+              <div className="text-lg font-bold text-[#22C55E]">
                 {(() => {
                   const factor = emissionFactors.find(f => f.id === currentTx.emissionFactorId);
                   if (factor && currentTx.quantity !== undefined) {

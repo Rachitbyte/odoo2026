@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Plus, Edit2, Trash2, Box, Loader2 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Search, Loader2, ChevronDown, Eye, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import Papa from "papaparse";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Department {
   id: number;
@@ -29,10 +31,18 @@ export default function ProductESGPage() {
   const [products, setProducts] = useState<ProductESGProfile[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // Selection & Search
+  const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
   const [modalOpen, setModalOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Partial<ProductESGProfile>>({});
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<number | null>(null);
+
+  // View & Export
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -70,6 +80,7 @@ export default function ProductESGPage() {
         toast.success(currentProduct.id ? "Product updated" : "Product created");
         setModalOpen(false);
         fetchData();
+        setSelectedRowId(null);
       } else {
         const err = await res.json();
         toast.error(err.error || "Failed to save");
@@ -82,13 +93,14 @@ export default function ProductESGPage() {
   };
 
   const handleDelete = async () => {
-    if (!productToDelete) return;
+    if (!selectedRowId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/environmental/products/${productToDelete}`, { method: "DELETE" });
+      const res = await fetch(`/api/environmental/products/${selectedRowId}`, { method: "DELETE" });
       if (res.ok) {
         toast.success("Product deleted");
         setDeleteConfirmOpen(false);
+        setSelectedRowId(null);
         fetchData();
       } else {
         toast.error("Failed to delete");
@@ -100,98 +112,216 @@ export default function ProductESGPage() {
     }
   };
 
+  const handleView = () => {
+    if (!selectedRowId) {
+      toast.error("Please select a row first");
+      return;
+    }
+    setViewModalOpen(true);
+  };
+
+  const handleExportCSV = () => {
+    const csv = Papa.unparse(products.map(p => ({
+      Product: p.productName,
+      Code: p.productCode,
+      Department: p.dept?.name || "Unknown",
+      Footprint: p.carbonFootprint,
+      Recyclable: p.recyclable ? "Yes" : "No"
+    })));
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "product-profiles.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Product ESG Profiles", 14, 15);
+    autoTable(doc, {
+      head: [["Product", "Code", "Department", "Footprint", "Recyclable"]],
+      body: products.map(p => [
+        p.productName, 
+        p.productCode, 
+        p.dept?.name || "Unknown", 
+        p.carbonFootprint.toString(), 
+        p.recyclable ? "Yes" : "No"
+      ]),
+      startY: 20,
+    });
+    doc.save("product-profiles.pdf");
+  };
+
+  const filteredProducts = products.filter(p => 
+    p.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.productCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.dept?.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const selectedProduct = products.find(p => p.id === selectedRowId);
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2A2A2A] pb-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-            <Box className="w-8 h-8 text-[#22C55E]" /> Product ESG Profiles
-          </h2>
-          <p className="text-[#9CA3AF] text-sm mt-1">
-            Track product recyclability and total carbon footprint across departments.
-          </p>
+    <div className="space-y-4">
+      {/* Action Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={() => {
+              setCurrentProduct({ productName: "", productCode: "", deptId: departments[0]?.id || 0, carbonFootprint: 0, recyclable: false, notes: "" });
+              setModalOpen(true);
+            }}
+            className="bg-[#22C55E] hover:bg-[#1eb053] text-black font-medium px-6 py-2 h-10 rounded-lg"
+          >
+            + New Profile
+          </Button>
+          <Button
+            onClick={() => {
+              if (selectedProduct) {
+                setCurrentProduct(selectedProduct);
+                setModalOpen(true);
+              }
+            }}
+            disabled={!selectedRowId}
+            className="bg-[#F97316] hover:bg-[#ea580c] text-white font-medium px-6 py-2 h-10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Edit
+          </Button>
+          <Button
+            onClick={() => setDeleteConfirmOpen(true)}
+            disabled={!selectedRowId}
+            className="bg-[#EF4444] hover:bg-[#dc2626] text-white font-medium px-6 py-2 h-10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Delete
+          </Button>
+          <div className="relative">
+            <Button
+              variant="outline"
+              onClick={() => setExportOpen(!exportOpen)}
+              className="bg-[#9CA3AF] hover:bg-[#6B7280] text-black border-none font-medium px-6 py-2 h-10 rounded-lg flex items-center gap-2"
+            >
+              Export <ChevronDown className="w-4 h-4 opacity-50" />
+            </Button>
+            {exportOpen && (
+              <div className="absolute left-0 mt-2 w-40 bg-[#111111] border border-[#2A2A2A] rounded-md shadow-lg z-10 py-1">
+                <button onClick={() => { handleExportCSV(); setExportOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#2A2A2A]">Export CSV</button>
+                <button onClick={() => { handleExportPDF(); setExportOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#2A2A2A]">Export PDF</button>
+              </div>
+            )}
+          </div>
         </div>
-        <Button
-          onClick={() => {
-            setCurrentProduct({ productName: "", productCode: "", deptId: departments[0]?.id || 0, carbonFootprint: 0, recyclable: false, notes: "" });
-            setModalOpen(true);
-          }}
-          className="bg-[#22C55E] hover:bg-[#1eb053] text-black font-semibold rounded-lg flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" /> New Profile
-        </Button>
+        
+        <div className="relative w-full md:w-64">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+          <input 
+            type="text" 
+            placeholder="Search profiles..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#111111] border border-[#2A2A2A] rounded-full pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-[#22C55E]"
+          />
+        </div>
       </div>
 
-      <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden shadow-2xl">
+      <div className="bg-[#111111] border border-[#2A2A2A] rounded-xl overflow-hidden">
         <Table>
-          <TableHeader className="bg-[#111111] border-b border-[#2A2A2A]">
-            <TableRow className="border-b border-[#2A2A2A] hover:bg-transparent">
+          <TableHeader>
+            <TableRow className="border-b border-[#2A2A2A] hover:bg-transparent bg-[#111111]">
               <TableHead className="text-white font-medium">Product</TableHead>
               <TableHead className="text-white font-medium">Department</TableHead>
               <TableHead className="text-white font-medium text-right">Footprint (kg CO2e)</TableHead>
               <TableHead className="text-white font-medium text-center">Recyclable</TableHead>
-              <TableHead className="text-white font-medium text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.length === 0 ? (
+            {filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-10 text-[#9CA3AF]">
+                <TableCell colSpan={4} className="text-center py-10 text-[#9CA3AF]">
                   No products configured yet.
                 </TableCell>
               </TableRow>
             ) : (
-              products.map((product) => (
-                <TableRow key={product.id} className="border-b border-[#2A2A2A]/50 hover:bg-[#22C55E]/5 transition-colors">
-                  <TableCell>
-                    <div>
-                      <p className="font-semibold text-white">{product.productName}</p>
-                      <p className="text-xs text-[#9CA3AF] font-mono">{product.productCode}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className="bg-[#2A2A2A] text-white border border-[#3A3A3A]">
-                      {product.dept?.name || "Unknown"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-[#22C55E] font-medium">{product.carbonFootprint}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge className={product.recyclable ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-gray-500/10 text-gray-400 border border-gray-500/20"}>
-                      {product.recyclable ? "Yes" : "No"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setCurrentProduct(product);
-                          setModalOpen(true);
-                        }}
-                        className="text-[#9CA3AF] hover:text-white hover:bg-[#2A2A2A] h-8 w-8 rounded-lg"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setProductToDelete(product.id);
-                          setDeleteConfirmOpen(true);
-                        }}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 rounded-lg"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+              filteredProducts.map((product) => {
+                const isSelected = selectedRowId === product.id;
+                
+                return (
+                  <TableRow 
+                    key={product.id} 
+                    onClick={() => setSelectedRowId(isSelected ? null : product.id)}
+                    className={`border-b border-[#2A2A2A]/50 cursor-pointer transition-colors ${
+                      isSelected ? "bg-[#22C55E]/10" : "hover:bg-[#2A2A2A]"
+                    }`}
+                  >
+                    <TableCell>
+                      <div>
+                        <p className="font-semibold text-white">{product.productName}</p>
+                        <p className="text-xs text-[#9CA3AF] font-mono">{product.productCode}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-[#9CA3AF]">{product.dept?.name || "Unknown"}</TableCell>
+                    <TableCell className="text-right font-mono text-[#22C55E] font-medium">{product.carbonFootprint}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge className={product.recyclable ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-gray-500/10 text-gray-400 border border-gray-500/20"}>
+                        {product.recyclable ? "Yes" : "No"}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
       </div>
+
+      <div className="flex items-center gap-3 text-xs text-[#9CA3AF] mt-2 px-1">
+        <button onClick={handleView} className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Eye className="w-3 h-3 text-[#F97316]" /> View</button>
+        <button onClick={() => { if(selectedProduct){ setCurrentProduct(selectedProduct); setModalOpen(true); } else toast.error("Please select a row first") }} className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Edit2 className="w-3 h-3 text-[#F97316]" /> Edit</button>
+        <button onClick={() => { if(selectedRowId){ setDeleteConfirmOpen(true); } else toast.error("Please select a row first") }} className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Trash2 className="w-3 h-3 text-[#9CA3AF]" /> Delete</button>
+      </div>
+
+      {/* View Modal */}
+      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
+        <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white">
+          <DialogHeader>
+            <DialogTitle>View Product Profile</DialogTitle>
+          </DialogHeader>
+          {selectedProduct && (
+            <div className="space-y-4 my-4 grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="text-xs font-semibold text-[#9CA3AF]">Product Name</label>
+                <div className="text-sm text-white mt-1">{selectedProduct.productName}</div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#9CA3AF]">Product Code</label>
+                <div className="text-sm text-white mt-1">{selectedProduct.productCode}</div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#9CA3AF]">Department</label>
+                <div className="text-sm text-white mt-1">{selectedProduct.dept?.name || "Unknown"}</div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#9CA3AF]">Carbon Footprint</label>
+                <div className="text-sm text-[#22C55E] mt-1">{selectedProduct.carbonFootprint} kg CO2e</div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#9CA3AF]">Recyclable</label>
+                <div className="text-sm text-white mt-1">{selectedProduct.recyclable ? "Yes" : "No"}</div>
+              </div>
+              {selectedProduct.notes && (
+                <div className="col-span-2">
+                  <label className="text-xs font-semibold text-[#9CA3AF]">Notes</label>
+                  <div className="text-sm text-white mt-1">{selectedProduct.notes}</div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setViewModalOpen(false)} className="text-white hover:bg-[#2A2A2A]">Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* CRUD Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>

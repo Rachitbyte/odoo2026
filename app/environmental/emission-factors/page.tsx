@@ -160,6 +160,13 @@ export default function EmissionFactorsPage() {
             + New Factor
           </Button>
           <Button
+            onClick={handleView}
+            disabled={!selectedRowId}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 h-10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            View
+          </Button>
+          <Button
             onClick={() => {
               if (selectedFactor) {
                 setCurrentFactor(selectedFactor);
@@ -180,9 +187,8 @@ export default function EmissionFactorsPage() {
           </Button>
           <div className="relative">
             <Button
-              variant="outline"
               onClick={() => setExportOpen(!exportOpen)}
-              className="bg-white hover:bg-gray-200 text-black border-none font-medium px-6 py-2 h-10 rounded-lg flex items-center gap-2"
+              className="bg-white hover:bg-gray-200 text-black border-none font-medium px-6 py-2 h-10 rounded-lg flex items-center gap-2 cursor-pointer"
             >
               <Download className="w-4 h-4" /> Export ▼
             </Button>
@@ -258,11 +264,6 @@ export default function EmissionFactorsPage() {
         </Table>
       </div>
 
-      <div className="flex items-center gap-3 text-xs text-[#9CA3AF] mt-2 px-1">
-        <button onClick={handleView} className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Eye className="w-3 h-3 text-[#F97316]" /> View</button>
-        <button onClick={() => { if(selectedFactor){ setCurrentFactor(selectedFactor); setModalOpen(true); } else toast.error("Please select a row first") }} className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Edit2 className="w-3 h-3 text-[#F97316]" /> Edit</button>
-        <button onClick={() => { if(selectedRowId){ setDeleteConfirmOpen(true); } else toast.error("Please select a row first") }} className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Trash2 className="w-3 h-3 text-[#9CA3AF]" /> Delete</button>
-      </div>
 
       {/* View Modal */}
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>

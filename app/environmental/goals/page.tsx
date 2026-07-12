@@ -180,6 +180,13 @@ export default function EnvironmentalGoalsPage() {
             + New Goal
           </Button>
           <Button
+            onClick={handleView}
+            disabled={!selectedRowId}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 h-10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            View
+          </Button>
+          <Button
             onClick={() => {
               if (selectedGoal) {
                 setCurrentGoal({
@@ -203,9 +210,8 @@ export default function EnvironmentalGoalsPage() {
           </Button>
           <div className="relative">
             <Button
-              variant="outline"
               onClick={() => setExportOpen(!exportOpen)}
-              className="bg-white hover:bg-gray-200 text-black border-none font-medium px-6 py-2 h-10 rounded-lg flex items-center gap-2"
+              className="bg-white hover:bg-gray-200 text-black border-none font-medium px-6 py-2 h-10 rounded-lg flex items-center gap-2 cursor-pointer"
             >
               <Download className="w-4 h-4" /> Export ▼
             </Button>
@@ -310,12 +316,8 @@ export default function EnvironmentalGoalsPage() {
       </div>
       
       {/* Footer Text */}
-      <div className="flex items-center gap-3 text-xs text-[#9CA3AF] mt-2 px-1">
-        <button onClick={handleView} className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Eye className="w-3 h-3 text-[#F97316]" /> View</button>
-        <button onClick={() => { if(selectedGoal){ setCurrentGoal({ ...selectedGoal, deadline: new Date(selectedGoal.deadline).toISOString().split("T")[0] }); setModalOpen(true); } else toast.error("Please select a row first") }} className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Edit2 className="w-3 h-3 text-[#F97316]" /> Edit</button>
-        <button onClick={() => { if(selectedRowId){ setDeleteConfirmOpen(true); } else toast.error("Please select a row first") }} className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Trash2 className="w-3 h-3 text-[#9CA3AF]" /> Delete</button>
-        <span>•</span>
-        <span>Carbon Transactions auto-generated from Purchase/Manufacturing/Fleet/Expenses</span>
+      <div className="text-xs text-[#9CA3AF] mt-2 px-1">
+        Carbon Transactions auto-generated from Purchase/Manufacturing/Fleet/Expenses
       </div>
 
       {/* View Modal */}

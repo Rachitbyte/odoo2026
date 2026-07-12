@@ -176,11 +176,17 @@ export default function CarbonTransactionsPage() {
           >
             + Log Transaction
           </Button>
+          <Button
+            onClick={handleView}
+            disabled={!selectedRowId}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 h-10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            View
+          </Button>
           <div className="relative">
             <Button
-              variant="outline"
               onClick={() => setExportOpen(!exportOpen)}
-              className="bg-white hover:bg-gray-200 text-black border-none font-medium px-6 py-2 h-10 rounded-lg flex items-center gap-2"
+              className="bg-white hover:bg-gray-200 text-black border-none font-medium px-6 py-2 h-10 rounded-lg flex items-center gap-2 cursor-pointer"
             >
               <Download className="w-4 h-4" /> Export ▼
             </Button>
@@ -270,10 +276,8 @@ export default function CarbonTransactionsPage() {
         </Table>
       </div>
 
-      <div className="flex items-center gap-3 text-xs text-[#9CA3AF] mt-2 px-1">
-        <button onClick={handleView} className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Eye className="w-3 h-3 text-[#F97316]" /> View</button>
-        <span>•</span>
-        <span>Transactions are immutable and cannot be edited or deleted.</span>
+      <div className="text-xs text-[#9CA3AF] mt-2 px-1">
+        Transactions are immutable and cannot be edited or deleted.
       </div>
 
       {/* View Modal */}

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -68,6 +68,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("departments");
   const [loading, setLoading] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
 
   // Data States
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -315,28 +316,28 @@ export default function SettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-[#1A1A1A] border border-[#2A2A2A] p-1 gap-2 rounded-xl mb-6">
+        <TabsList className="flex bg-transparent p-0 gap-2 mb-6 h-auto">
           <TabsTrigger
             value="departments"
-            className="rounded-lg text-sm text-[#9CA3AF] data-[state=active]:bg-[#22C55E]/10 data-[state=active]:text-[#22C55E]"
+            className="rounded-md border border-[#2A2A2A] px-6 py-2.5 text-sm font-normal text-[#9CA3AF] data-[state=active]:bg-[#9CA3AF] data-[state=active]:text-black data-[state=active]:border-[#9CA3AF] transition-all"
           >
             Departments
           </TabsTrigger>
           <TabsTrigger
             value="categories"
-            className="rounded-lg text-sm text-[#9CA3AF] data-[state=active]:bg-[#22C55E]/10 data-[state=active]:text-[#22C55E]"
+            className="rounded-md border border-[#2A2A2A] px-6 py-2.5 text-sm font-normal text-[#9CA3AF] data-[state=active]:bg-[#9CA3AF] data-[state=active]:text-black data-[state=active]:border-[#9CA3AF] transition-all"
           >
             Categories
           </TabsTrigger>
           <TabsTrigger
             value="esg-config"
-            className="rounded-lg text-sm text-[#9CA3AF] data-[state=active]:bg-[#22C55E]/10 data-[state=active]:text-[#22C55E]"
+            className="rounded-md border border-[#2A2A2A] px-6 py-2.5 text-sm font-normal text-[#9CA3AF] data-[state=active]:bg-[#9CA3AF] data-[state=active]:text-black data-[state=active]:border-[#9CA3AF] transition-all"
           >
             ESG Configuration
           </TabsTrigger>
           <TabsTrigger
             value="notifications"
-            className="rounded-lg text-sm text-[#9CA3AF] data-[state=active]:bg-[#22C55E]/10 data-[state=active]:text-[#22C55E]"
+            className="rounded-md border border-[#2A2A2A] px-6 py-2.5 text-sm font-normal text-[#9CA3AF] data-[state=active]:bg-[#9CA3AF] data-[state=active]:text-black data-[state=active]:border-[#9CA3AF] transition-all"
           >
             Notification Settings
           </TabsTrigger>
@@ -344,96 +345,85 @@ export default function SettingsPage() {
 
         {/* -------------------- DEPARTMENTS TAB -------------------- */}
         <TabsContent value="departments" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-xl font-semibold text-white">Department Registry</h3>
+          <div className="flex gap-3 items-center mb-2">
             <Button
               onClick={() => {
                 setCurrentDept({ name: "", code: "", head: "", employeeCount: 0, status: "Active", parentDeptId: null });
                 setDeptModalOpen(true);
               }}
-              className="bg-[#22C55E] hover:bg-[#1eb053] text-black font-semibold rounded-lg flex items-center gap-2"
+              className="bg-[#9CA3AF] hover:bg-[#D1D5DB] text-black font-medium rounded-md px-6 flex items-center gap-2"
             >
-              <Plus className="w-4 h-4" /> New Department
+              + New Department
+            </Button>
+            <Button
+              onClick={() => {
+                if (!selectedDeptId) return toast.error("Please select a department to edit");
+                const dept = departments.find(d => d.id === selectedDeptId);
+                if (dept) {
+                  setCurrentDept(dept);
+                  setDeptModalOpen(true);
+                }
+              }}
+              className="bg-[#D97706] hover:bg-[#F59E0B] text-black font-medium rounded-md px-6 flex items-center gap-2"
+            >
+              Edit
+            </Button>
+            <Button
+              onClick={() => {
+                if (!selectedDeptId) return toast.error("Please select a department to delete");
+                setDeptToDelete(selectedDeptId);
+                setDeleteDeptConfirmOpen(true);
+              }}
+              className="bg-[#F87171] hover:bg-[#FCA5A5] text-black font-medium rounded-md px-6 flex items-center gap-2"
+            >
+              Delete
             </Button>
           </div>
 
-          <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden shadow-2xl">
+          <div className="bg-transparent border border-[#2A2A2A] rounded-xl overflow-hidden shadow-2xl">
             <Table>
               <TableHeader className="bg-[#111111] border-b border-[#2A2A2A]">
-                <TableRow className="border-b border-[#2A2A2A] hover:bg-transparent">
-                  <TableHead className="text-white font-medium">Name</TableHead>
-                  <TableHead className="text-white font-medium">Code</TableHead>
-                  <TableHead className="text-white font-medium">Head</TableHead>
-                  <TableHead className="text-white font-medium">Parent Dept</TableHead>
-                  <TableHead className="text-white font-medium text-right">Employees</TableHead>
-                  <TableHead className="text-white font-medium text-center">Status</TableHead>
-                  <TableHead className="text-white font-medium text-right">Actions</TableHead>
+                <TableRow className="border-b border-[#2A2A2A] hover:bg-transparent text-[#9CA3AF]">
+                  <TableHead className="font-normal">Name</TableHead>
+                  <TableHead className="font-normal">Code</TableHead>
+                  <TableHead className="font-normal">Head</TableHead>
+                  <TableHead className="font-normal">Parent Department</TableHead>
+                  <TableHead className="font-normal text-center">Employees</TableHead>
+                  <TableHead className="font-normal text-right">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {departments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-10 text-[#9CA3AF]">
-                      No departments configured. Use the button to add one or Seed Database in the ESG tab.
+                    <TableCell colSpan={6} className="text-center py-10 text-[#9CA3AF]">
+                      No departments configured.
                     </TableCell>
                   </TableRow>
                 ) : (
                   departments.map((dept) => (
                     <TableRow
                       key={dept.id}
-                      className="border-b border-[#2A2A2A]/50 hover:bg-[#22C55E]/5 transition-colors group"
+                      onClick={() => setSelectedDeptId(dept.id)}
+                      className={`border-b border-[#2A2A2A]/50 transition-colors cursor-pointer ${selectedDeptId === dept.id ? 'bg-[#2A2A2A]' : 'hover:bg-[#1A1A1A]'}`}
                     >
-                      <TableCell className="font-semibold text-white">{dept.name}</TableCell>
-                      <TableCell>
-                        <Badge className="bg-[#2A2A2A] text-white border border-[#3A3A3A]">
-                          {dept.code}
-                        </Badge>
+                      <TableCell className="text-white text-sm">{dept.name}</TableCell>
+                      <TableCell className="text-[#9CA3AF] text-sm">{dept.code}</TableCell>
+                      <TableCell className="text-[#9CA3AF] text-sm">{dept.head}</TableCell>
+                      <TableCell className="text-[#9CA3AF] text-sm">
+                        {dept.parentDept ? dept.parentDept.name : "—"}
                       </TableCell>
-                      <TableCell className="text-[#9CA3AF]">{dept.head}</TableCell>
-                      <TableCell className="text-[#9CA3AF]">
-                        {dept.parentDept ? (
-                          <span className="text-[#22C55E]/80 font-medium">{dept.parentDept.name}</span>
-                        ) : (
-                          <span className="text-gray-600">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right text-white font-mono">{dept.employeeCount}</TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center text-white text-sm">{dept.employeeCount}</TableCell>
+                      <TableCell className="text-right">
                         <Badge
+                          variant="outline"
                           className={
                             dept.status === "Active"
-                              ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                              : "bg-gray-500/10 text-gray-400 border border-gray-500/20"
+                              ? "text-green-500 border-green-500 rounded-md font-normal px-3 py-0"
+                              : "text-gray-400 border-gray-400 rounded-md font-normal px-3 py-0"
                           }
                         >
                           {dept.status}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setCurrentDept(dept);
-                              setDeptModalOpen(true);
-                            }}
-                            className="text-[#9CA3AF] hover:text-white hover:bg-[#2A2A2A] h-8 w-8 rounded-lg"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setDeptToDelete(dept.id);
-                              setDeleteDeptConfirmOpen(true);
-                            }}
-                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 rounded-lg"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -540,100 +530,7 @@ export default function SettingsPage() {
 
         {/* -------------------- ESG CONFIGURATION TAB -------------------- */}
         <TabsContent value="esg-config" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Toggles */}
-            <div className="lg:col-span-2 space-y-4">
-              <Card className="bg-[#1A1A1A] border-[#2A2A2A]">
-                <CardHeader>
-                  <CardTitle className="text-white text-lg">Platform Feature Toggles</CardTitle>
-                  <CardDescription className="text-[#9CA3AF]">
-                    Enable or disable automated system triggers for environmental calculations and gamification rewards.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Toggle 1 */}
-                  <div className="flex items-center justify-between border-b border-[#2A2A2A]/50 pb-4">
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-white">Enable auto emission calculation</p>
-                      <p className="text-xs text-[#9CA3AF]">Carbon transactions are calculated automatically from operations</p>
-                    </div>
-                    <button
-                      onClick={() => handleToggleConfig("autoEmissionCalc", !esgConfig.autoEmissionCalc)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                        esgConfig.autoEmissionCalc ? "bg-[#22C55E]" : "bg-[#2A2A2A]"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          esgConfig.autoEmissionCalc ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  {/* Toggle 2 */}
-                  <div className="flex items-center justify-between border-b border-[#2A2A2A]/50 pb-4">
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-white">Require evidence for all CSR activities</p>
-                      <p className="text-xs text-[#9CA3AF]">Participation cannot be approved without a proof file</p>
-                    </div>
-                    <button
-                      onClick={() => handleToggleConfig("requireCsrEvidence", !esgConfig.requireCsrEvidence)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                        esgConfig.requireCsrEvidence ? "bg-[#22C55E]" : "bg-[#2A2A2A]"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          esgConfig.requireCsrEvidence ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  {/* Toggle 3 */}
-                  <div className="flex items-center justify-between border-b border-[#2A2A2A]/50 pb-4">
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-white">Auto-award badges on challenge completion</p>
-                      <p className="text-xs text-[#9CA3AF]">Badges assigned automatically when unlock rule is met</p>
-                    </div>
-                    <button
-                      onClick={() => handleToggleConfig("autoBadgeAward", !esgConfig.autoBadgeAward)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                        esgConfig.autoBadgeAward ? "bg-[#22C55E]" : "bg-[#2A2A2A]"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          esgConfig.autoBadgeAward ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  {/* Toggle 4 */}
-                  <div className="flex items-center justify-between pb-2">
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-white">Email alerts for new compliance issues</p>
-                      <p className="text-xs text-[#9CA3AF]">Send email when a new compliance issue is raised</p>
-                    </div>
-                    <button
-                      onClick={() => handleToggleConfig("emailAlerts", !esgConfig.emailAlerts)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                        esgConfig.emailAlerts ? "bg-[#22C55E]" : "bg-[#2A2A2A]"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          esgConfig.emailAlerts ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Weights Card */}
             <div className="space-y-4">
               <Card className="bg-[#1A1A1A] border-[#2A2A2A]">
@@ -731,6 +628,56 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Global ESG Configuration & Notifications Section */}
+      <div className="pt-8">
+        <h3 className="text-[#9CA3AF] text-sm font-medium mb-4">ESG Configuration & Notifications</h3>
+        <div className="space-y-4 max-w-md">
+          {/* Toggle 1 */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleToggleConfig("autoEmissionCalc", !esgConfig.autoEmissionCalc)}
+              className="relative inline-flex h-6 w-11 items-center rounded-md bg-[#9CA3AF] transition-colors focus:outline-none"
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-md bg-[#111111] transition-transform ${esgConfig.autoEmissionCalc ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+            <p className="text-sm text-[#D1D5DB]">Enable auto emission calculation</p>
+          </div>
+
+          {/* Toggle 2 */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleToggleConfig("requireCsrEvidence", !esgConfig.requireCsrEvidence)}
+              className="relative inline-flex h-6 w-11 items-center rounded-md bg-[#9CA3AF] transition-colors focus:outline-none"
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-md bg-[#111111] transition-transform ${esgConfig.requireCsrEvidence ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+            <p className="text-sm text-[#D1D5DB]">Require evidence for all CSR activities</p>
+          </div>
+
+          {/* Toggle 3 */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleToggleConfig("autoBadgeAward", !esgConfig.autoBadgeAward)}
+              className="relative inline-flex h-6 w-11 items-center rounded-md bg-[#9CA3AF] transition-colors focus:outline-none"
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-md bg-[#111111] transition-transform ${esgConfig.autoBadgeAward ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+            <p className="text-sm text-[#D1D5DB]">Auto-award badges on challenge completion</p>
+          </div>
+
+          {/* Toggle 4 */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleToggleConfig("emailAlerts", !esgConfig.emailAlerts)}
+              className="relative inline-flex h-6 w-11 items-center rounded-md bg-[#9CA3AF] transition-colors focus:outline-none"
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-md bg-[#111111] transition-transform ${esgConfig.emailAlerts ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+            <p className="text-sm text-[#D1D5DB]">Email alerts for new compliance issues</p>
+          </div>
+        </div>
+      </div>
 
       {/* ==================== DIALOGS / MODALS ==================== */}
 

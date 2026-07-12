@@ -200,7 +200,7 @@ export default function ProductESGPage() {
             <Button
               variant="outline"
               onClick={() => setExportOpen(!exportOpen)}
-              className="bg-[#9CA3AF] hover:bg-[#6B7280] text-black border-none font-medium px-6 py-2 h-10 rounded-lg flex items-center gap-2"
+              className="bg-white hover:bg-gray-200 text-black border-none font-medium px-6 py-2 h-10 rounded-lg flex items-center gap-2"
             >
               <Download className="w-4 h-4" /> Export ▼
             </Button>

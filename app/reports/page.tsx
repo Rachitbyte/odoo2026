@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   BarChart2,
@@ -15,8 +16,25 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-export default function ReportsPage() {
+function ReportsPageInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tabParam = searchParams.get("tab") || "summary";
+
+  const [activeTab, setActiveTab] = useState(tabParam);
   const [loadingReport, setLoadingReport] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (tabParam) setActiveTab(tabParam);
+  }, [tabParam]);
+
+  const tabs = [
+    { name: "Environmental", value: "environmental" },
+    { name: "Social", value: "social" },
+    { name: "Governance", value: "governance" },
+    { name: "ESG Summary", value: "summary" },
+    { name: "Custom Builder", value: "custom" },
+  ];
 
   const drawHeader = (doc: any, title: string) => {
     // Premium Dark Theme Header Bar
@@ -504,6 +522,33 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-8">
+      {/* Horizontal Tabs Bar */}
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-[#2A2A2A] scrollbar-track-transparent">
+        <div className="flex items-center gap-2 bg-[#141414] border border-[#262626] p-1 rounded-xl min-w-max">
+          {tabs.map((t) => {
+            const isActive = activeTab === t.value;
+            return (
+              <button
+                key={t.value}
+                onClick={() => {
+                  setActiveTab(t.value);
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.set("tab", t.value);
+                  router.push(`?${params.toString()}`, { scroll: false });
+                }}
+                className={`whitespace-nowrap px-4 py-2 text-sm font-semibold rounded-lg transition-colors duration-200 ${
+                  isActive
+                    ? "bg-[#2A2A2A] text-white"
+                    : "text-[#9CA3AF] hover:text-white hover:bg-[#1A1A1A]"
+                }`}
+              >
+                {t.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2A2A2A] pb-6">
         <div>
@@ -514,11 +559,6 @@ export default function ReportsPage() {
             Generate and export verified ESG documentation tables in PDF format.
           </p>
         </div>
-        <Link href="/reports/custom">
-          <Button className="bg-[#06B6D4] hover:bg-[#0891b2] text-black font-semibold rounded-xl flex items-center gap-2">
-            Custom Report Builder <ArrowUpRight className="w-4 h-4" />
-          </Button>
-        </Link>
       </div>
 
       {/* 2x2 Grid of Report Cards */}
@@ -631,6 +671,77 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Custom Report Builder: Filters */}
+      <Card className="bg-[#141414] border-[#2A2A2A] rounded-2xl">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-white text-base flex items-center gap-2">
+            <Settings className="w-4 h-4 text-[#9CA3AF]" /> Custom Report Builder: Filters
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-3">
+            <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
+              <option>Date Range</option>
+              <option>Last 30 Days</option>
+              <option>Last Quarter</option>
+              <option>Year to Date</option>
+            </select>
+            <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
+              <option>Department</option>
+              <option>Manufacturing</option>
+              <option>IT</option>
+              <option>HR</option>
+            </select>
+            <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
+              <option>Module</option>
+              <option>Environmental</option>
+              <option>Social</option>
+              <option>Governance</option>
+            </select>
+            <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
+              <option>Employee</option>
+              <option>Aditi Rao</option>
+              <option>Marcus Wright</option>
+            </select>
+            <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
+              <option>Challenge</option>
+              <option>Sustainability Sprint</option>
+              <option>Recycle Challenge</option>
+            </select>
+            <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
+              <option>ESG Category</option>
+              <option>Energy</option>
+              <option>Waste</option>
+              <option>Diversity</option>
+            </select>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <Button className="bg-[#3B82F6] hover:bg-[#2563EB] text-white text-sm font-semibold px-4 py-1.5 rounded-lg flex items-center gap-2">
+              <span className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-white border-b-[4px] border-b-transparent"></span>
+              Run Report
+            </Button>
+            <Button variant="outline" className="bg-[#0D0D0D] border-[#2A2A2A] hover:bg-[#1A1A1A] hover:text-white text-[#9CA3AF] text-sm px-4 py-1.5 rounded-lg">
+              Export: PDF
+            </Button>
+            <Button variant="outline" className="bg-[#0D0D0D] border-[#2A2A2A] hover:bg-[#1A1A1A] hover:text-white text-[#9CA3AF] text-sm px-4 py-1.5 rounded-lg">
+              Export: Excel
+            </Button>
+            <Button variant="outline" className="bg-[#0D0D0D] border-[#2A2A2A] hover:bg-[#1A1A1A] hover:text-white text-[#9CA3AF] text-sm px-4 py-1.5 rounded-lg">
+              Export: CSV
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
+  );
+}
+
+export default function ReportsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-500">Loading Reports...</div>}>
+      <ReportsPageInner />
+    </Suspense>
   );
 }

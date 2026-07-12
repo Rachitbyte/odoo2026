@@ -45,6 +45,7 @@ function SidebarInner({ onClose }: SidebarProps) {
     Social:        pathname.startsWith("/social"),
     Governance:    pathname.startsWith("/governance"),
     Gamification:  pathname.startsWith("/gamification"),
+    Reports:       pathname.startsWith("/reports"),
   });
 
   const toggle = (name: string) =>
@@ -116,6 +117,13 @@ function SidebarInner({ onClose }: SidebarProps) {
       icon: BarChart2,
       color: "text-[#06B6D4]",
       bgColor: "bg-[#06B6D4]/10 border-l-2 border-[#06B6D4]",
+      subItems: [
+        { name: "Environmental", href: "/reports?tab=environmental" },
+        { name: "Social", href: "/reports?tab=social" },
+        { name: "Governance", href: "/reports?tab=governance" },
+        { name: "ESG Summary", href: "/reports?tab=summary" },
+        { name: "Custom Builder", href: "/reports?tab=custom" },
+      ],
     },
     {
       name: "Settings",

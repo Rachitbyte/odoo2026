@@ -74,6 +74,7 @@ function SettingsPageInner() {
   const [loading, setLoading] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
+  const [selectedCatId, setSelectedCatId] = useState<number | null>(null);
 
   useEffect(() => {
     if (tabParam) setActiveTab(tabParam);
@@ -453,33 +454,54 @@ function SettingsPageInner() {
 
         {/* -------------------- CATEGORIES TAB -------------------- */}
         <TabsContent value="categories" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-xl font-semibold text-white">ESG Categorization</h3>
+          <div className="flex gap-3 items-center mb-2">
             <Button
               onClick={() => {
                 setCurrentCat({ name: "", type: "CSR_ACTIVITY", status: "Active" });
                 setCatModalOpen(true);
               }}
-              className="bg-[#22C55E] hover:bg-[#1eb053] text-black font-semibold rounded-lg flex items-center gap-2"
+              className="bg-[#9CA3AF] hover:bg-[#D1D5DB] text-black font-medium rounded-md px-6 flex items-center gap-2"
             >
-              <Plus className="w-4 h-4" /> New Category
+              + New Category
+            </Button>
+            <Button
+              onClick={() => {
+                if (!selectedCatId) return toast.error("Please select a category to edit");
+                const cat = categories.find(c => c.id === selectedCatId);
+                if (cat) {
+                  setCurrentCat(cat);
+                  setCatModalOpen(true);
+                }
+              }}
+              className="bg-[#D97706] hover:bg-[#F59E0B] text-black font-medium rounded-md px-6 flex items-center gap-2"
+            >
+              Edit
+            </Button>
+            <Button
+              onClick={() => {
+                if (!selectedCatId) return toast.error("Please select a category to delete");
+                setCatToDelete(selectedCatId);
+                setDeleteCatConfirmOpen(true);
+              }}
+              className="bg-[#F87171] hover:bg-[#FCA5A5] text-black font-medium rounded-md px-6 flex items-center gap-2"
+            >
+              Delete
             </Button>
           </div>
 
-          <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden shadow-2xl">
+          <div className="bg-transparent border border-[#2A2A2A] rounded-xl overflow-hidden shadow-2xl">
             <Table>
               <TableHeader className="bg-[#111111] border-b border-[#2A2A2A]">
-                <TableRow className="border-b border-[#2A2A2A] hover:bg-transparent">
-                  <TableHead className="text-white font-medium">Category Name</TableHead>
-                  <TableHead className="text-white font-medium">Type</TableHead>
-                  <TableHead className="text-white font-medium">Status</TableHead>
-                  <TableHead className="text-white font-medium text-right">Actions</TableHead>
+                <TableRow className="border-b border-[#2A2A2A] hover:bg-transparent text-[#9CA3AF]">
+                  <TableHead className="font-normal">Category Name</TableHead>
+                  <TableHead className="font-normal">Type</TableHead>
+                  <TableHead className="font-normal text-right">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {categories.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-10 text-[#9CA3AF]">
+                    <TableCell colSpan={3} className="text-center py-10 text-[#9CA3AF]">
                       No categories configured. Use the button to add one or Seed Database in the ESG tab.
                     </TableCell>
                   </TableRow>
@@ -487,56 +509,33 @@ function SettingsPageInner() {
                   categories.map((cat) => (
                     <TableRow
                       key={cat.id}
-                      className="border-b border-[#2A2A2A]/50 hover:bg-[#22C55E]/5 transition-colors"
+                      onClick={() => setSelectedCatId(cat.id)}
+                      className={`border-b border-[#2A2A2A]/50 transition-colors cursor-pointer ${selectedCatId === cat.id ? 'bg-[#2A2A2A]' : 'hover:bg-[#1A1A1A]'}`}
                     >
-                      <TableCell className="font-semibold text-white">{cat.name}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-white text-sm">{cat.name}</TableCell>
+                      <TableCell className="text-[#9CA3AF] text-sm">
                         <Badge
+                          variant="outline"
                           className={
                             cat.type === "CSR_ACTIVITY"
-                              ? "bg-orange-500/10 text-orange-400 border border-orange-500/20"
-                              : "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                              ? "text-orange-400 border-orange-500/50 rounded-md font-normal px-3 py-0"
+                              : "text-purple-400 border-purple-500/50 rounded-md font-normal px-3 py-0"
                           }
                         >
                           {cat.type.replace("_", " ")}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-right">
                         <Badge
+                          variant="outline"
                           className={
                             cat.status === "Active"
-                              ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                              : "bg-gray-500/10 text-gray-400 border border-gray-500/20"
+                              ? "text-green-500 border-green-500 rounded-md font-normal px-3 py-0"
+                              : "text-gray-400 border-gray-400 rounded-md font-normal px-3 py-0"
                           }
                         >
                           {cat.status}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setCurrentCat(cat);
-                              setCatModalOpen(true);
-                            }}
-                            className="text-[#9CA3AF] hover:text-white hover:bg-[#2A2A2A] h-8 w-8 rounded-lg"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setCatToDelete(cat.id);
-                              setDeleteCatConfirmOpen(true);
-                            }}
-                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 rounded-lg"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
                       </TableCell>
                     </TableRow>
                   ))

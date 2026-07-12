@@ -106,9 +106,9 @@ async function main() {
   await prisma.departmentScore.create({ data: { deptId: hr.id, environmentalScore: 90.0, socialScore: 95.0, governanceScore: 88.0, totalScore: 91.0 }});
 
   console.log("Seeding Gamification Challenges & Participations...");
-  const challenge1 = await prisma.challenge.create({ data: { title: "Zero Waste Week", categoryId: chalEnergy.id, description: "Produce zero non-recyclable waste at your desk for a full week.", xp: 200, difficulty: "Hard", evidenceRequired: true, deadline: new Date("2026-08-01T00:00:00Z"), status: "Active" }});
-  const challenge2 = await prisma.challenge.create({ data: { title: "Cycle to Work", categoryId: chalCommute.id, description: "Commute to work via bicycle at least 3 days a week.", xp: 150, difficulty: "Medium", evidenceRequired: true, deadline: new Date("2026-09-15T00:00:00Z"), status: "Active" }});
-  const challenge3 = await prisma.challenge.create({ data: { title: "Meatless Mondays", categoryId: chalEnergy.id, description: "Commit to plant-based meals every Monday for a month.", xp: 100, difficulty: "Easy", evidenceRequired: false, deadline: new Date("2026-10-01T00:00:00Z"), status: "Active" }});
+  const challenge1 = await prisma.challenge.create({ data: { title: "Sustainability Sprint", categoryId: chalEnergy.id, description: "Focus on reducing overall energy consumption.", xp: 200, difficulty: "Hard", evidenceRequired: true, deadline: new Date("2026-07-20T00:00:00Z"), status: "Active" }});
+  const challenge2 = await prisma.challenge.create({ data: { title: "Recycle Challenge", categoryId: chalEnergy.id, description: "Properly separate and recycle all daily office waste.", xp: 80, difficulty: "Easy", evidenceRequired: false, deadline: new Date("2026-07-15T00:00:00Z"), status: "Active" }});
+  const challenge3 = await prisma.challenge.create({ data: { title: "Commute Green Week", categoryId: chalCommute.id, description: "Commute using public transit, biking, or carpooling.", xp: 120, difficulty: "Medium", evidenceRequired: true, deadline: new Date("2026-07-25T00:00:00Z"), status: "Draft" }});
 
   await prisma.challengeParticipation.create({ data: { challengeId: challenge1.id, employeeName: "Sarah Jenkins", progress: 100, proofUrl: "https://example.com/proof/sarah", approvalStatus: "Approved", xpAwarded: 200 }});
   await prisma.challengeParticipation.create({ data: { challengeId: challenge1.id, employeeName: "David Chen", progress: 50, approvalStatus: "Pending", xpAwarded: 0 }});

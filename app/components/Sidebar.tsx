@@ -46,6 +46,7 @@ function SidebarInner({ onClose }: SidebarProps) {
     Governance:    pathname.startsWith("/governance"),
     Gamification:  pathname.startsWith("/gamification"),
     Reports:       pathname.startsWith("/reports"),
+    Settings:      pathname.startsWith("/settings"),
   });
 
   const toggle = (name: string) =>
@@ -131,6 +132,12 @@ function SidebarInner({ onClose }: SidebarProps) {
       icon: Settings,
       color: "text-[#22C55E]",
       bgColor: "bg-[#22C55E]/10 border-l-2 border-[#22C55E]",
+      subItems: [
+        { name: "Departments", href: "/settings" },
+        { name: "Categories", href: "/settings?tab=categories" },
+        { name: "ESG Configuration", href: "/settings?tab=esg-config" },
+        { name: "Notification Settings", href: "/settings?tab=notifications" },
+      ],
     },
   ];
 

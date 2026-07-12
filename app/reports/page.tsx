@@ -4,6 +4,7 @@ import { useState, Suspense, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import Papa from "papaparse";
 import {
   BarChart2,
   FileText,
@@ -11,10 +12,21 @@ import {
   ArrowUpRight,
   TrendingDown,
   Globe,
-  Settings
+  Settings,
+  Download,
+  FileSpreadsheet
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 function ReportsPageInner() {
   const searchParams = useSearchParams();
@@ -24,9 +36,141 @@ function ReportsPageInner() {
   const [activeTab, setActiveTab] = useState(tabParam);
   const [loadingReport, setLoadingReport] = useState<string | null>(null);
 
+  // --- Custom Builder State ---
+  const [running, setRunning] = useState(false);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [selectedDept, setSelectedDept] = useState("");
+  const [selectedModule, setSelectedModule] = useState("");
+  const [employeeName, setEmployeeName] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+
   useEffect(() => {
     if (tabParam) setActiveTab(tabParam);
   }, [tabParam]);
+
+  useEffect(() => {
+    // Fetch filter options
+    fetch("/api/departments").then(r => r.json()).then(d => { if(Array.isArray(d)) setDepartments(d) }).catch(()=>{});
+    fetch("/api/categories").then(r => r.json()).then(d => { if(Array.isArray(d)) setCategories(d) }).catch(()=>{});
+  }, []);
+
+  const handleRunCustomReport = async () => {
+    setRunning(true);
+    const params = new URLSearchParams();
+    if (startDate) params.append("startDate", startDate);
+    if (endDate) params.append("endDate", endDate);
+    if (selectedDept) params.append("deptId", selectedDept);
+    if (selectedModule) params.append("module", selectedModule);
+    if (employeeName) params.append("employeeName", employeeName);
+    if (selectedCategory) params.append("categoryId", selectedCategory);
+
+    try {
+      const res = await fetch(`/api/reports/custom?${params.toString()}`);
+      const data = await res.json();
+      if (res.ok) {
+        setResults(data);
+        toast.success(`Loaded ${data.length} records`);
+      } else {
+        toast.error("Failed to compile custom report");
+      }
+    } catch (e) {
+      toast.error("Network error");
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (results.length === 0) return toast.warning("No data");
+    const csv = Papa.unparse(results.map(r => ({
+      Date: new Date(r.date).toLocaleDateString(),
+      Module: r.module,
+      Department: r.departmentName,
+      Title: r.title,
+      Details: r.details,
+      Status: r.status
+    })));
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "custom-report.csv";
+    link.click();
+    toast.success("CSV exported");
+  };
+
+  const handleExportExcel = () => {
+    if (results.length === 0) return toast.warning("No data");
+    const csv = Papa.unparse(results.map(r => ({
+      Date: new Date(r.date).toLocaleDateString(),
+      Module: r.module,
+      Department: r.departmentName,
+      Title: r.title,
+      Details: r.details,
+      Status: r.status
+    })));
+    const blob = new Blob([csv], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "custom-report.xlsx";
+    link.click();
+    toast.success("Excel generated");
+  };
+
+  const handleExportCustomPDF = async () => {
+    if (results.length === 0) return toast.warning("No data");
+    setLoadingReport("customPDF");
+    try {
+      const jsPDF = (await import("jspdf")).default;
+      const doc = new jsPDF();
+      doc.setFillColor(13, 13, 13); doc.rect(0, 0, 210, 35, "F");
+      doc.setFillColor(6, 182, 212); doc.rect(0, 33, 210, 2, "F");
+      doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(20);
+      doc.text("ECOSPHERE CUSTOM REPORT", 15, 20);
+      doc.setFontSize(8); doc.setTextColor(156, 163, 175); doc.setFont("helvetica", "normal");
+      doc.text(`Generated: ${new Date().toLocaleString()} | Total Items: ${results.length}`, 15, 28);
+
+      let y = 45;
+      doc.setFillColor(26, 26, 26); doc.rect(15, y, 180, 8, "F");
+      doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.setFont("helvetica", "bold");
+      doc.text("Date", 17, y + 5); doc.text("Module", 35, y + 5); doc.text("Department", 62, y + 5);
+      doc.text("Event Title", 95, y + 5); doc.text("Value / Status", 160, y + 5);
+      y += 8;
+
+      doc.setFont("helvetica", "normal");
+      results.forEach(row => {
+        if (y > 270) {
+          doc.addPage();
+          doc.setFillColor(13, 13, 13); doc.rect(0, 0, 210, 20, "F");
+          doc.setTextColor(255, 255, 255); doc.setFontSize(10); doc.text("REPORT CONTINUED", 15, 12);
+          y = 30;
+          doc.setFillColor(26, 26, 26); doc.rect(15, y, 180, 8, "F");
+          doc.setFontSize(8); doc.setFont("helvetica", "bold");
+          doc.text("Date", 17, y + 5); doc.text("Module", 35, y + 5); doc.text("Department", 62, y + 5);
+          doc.text("Event Title", 95, y + 5); doc.text("Value / Status", 160, y + 5);
+          y += 8; doc.setFont("helvetica", "normal");
+        }
+        doc.setTextColor(200, 200, 200); doc.rect(15, y, 180, 0.2, "F");
+        doc.setTextColor(0, 0, 0); doc.setFontSize(7.5);
+        doc.text(new Date(row.date).toLocaleDateString(), 17, y + 5);
+        doc.text(row.module, 35, y + 5);
+        doc.text(row.departmentName.slice(0, 15), 62, y + 5);
+        doc.text(row.title.slice(0, 36), 95, y + 5);
+        doc.text(row.status.slice(0, 20), 160, y + 5);
+        y += 8;
+      });
+      doc.save("custom-report.pdf");
+      toast.success("PDF generated");
+    } catch (e) {
+      toast.error("Failed to generate PDF");
+    } finally {
+      setLoadingReport(null);
+    }
+  };
 
   const tabs = [
     { name: "Environmental", value: "environmental" },
@@ -573,57 +717,117 @@ function ReportsPageInner() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-3">
-                <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
-                  <option>Date Range</option>
-                  <option>Last 30 Days</option>
-                  <option>Last Quarter</option>
-                  <option>Year to Date</option>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]"
+                />
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]"
+                />
+                <select 
+                  value={selectedDept} onChange={e => setSelectedDept(e.target.value)}
+                  className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
+                  <option value="">All Departments</option>
+                  {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
-                <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
-                  <option>Department</option>
-                  <option>Manufacturing</option>
-                  <option>IT</option>
-                  <option>HR</option>
+                <select 
+                  value={selectedModule} onChange={e => setSelectedModule(e.target.value)}
+                  className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
+                  <option value="">All Modules</option>
+                  <option value="Environmental">Environmental</option>
+                  <option value="Social">Social</option>
+                  <option value="Governance">Governance</option>
+                  <option value="Gamification">Gamification</option>
                 </select>
-                <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
-                  <option>Module</option>
-                  <option>Environmental</option>
-                  <option>Social</option>
-                  <option>Governance</option>
-                </select>
-                <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
-                  <option>Employee</option>
-                  <option>Aditi Rao</option>
-                  <option>Marcus Wright</option>
-                </select>
-                <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
-                  <option>Challenge</option>
-                  <option>Sustainability Sprint</option>
-                  <option>Recycle Challenge</option>
-                </select>
-                <select className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
-                  <option>ESG Category</option>
-                  <option>Energy</option>
-                  <option>Waste</option>
-                  <option>Diversity</option>
+                <input
+                  type="text"
+                  placeholder="Employee Name"
+                  value={employeeName}
+                  onChange={e => setEmployeeName(e.target.value)}
+                  className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4] max-w-[150px]"
+                />
+                <select 
+                  value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}
+                  className="bg-[#0D0D0D] border border-[#2A2A2A] text-[#9CA3AF] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#06B6D4]">
+                  <option value="">All ESG Categories</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
 
               <div className="flex flex-wrap items-center gap-3 pt-2">
-                <Button className="bg-[#3B82F6] hover:bg-[#2563EB] text-white text-sm font-semibold px-4 py-1.5 rounded-lg flex items-center gap-2">
-                  <span className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-white border-b-[4px] border-b-transparent"></span>
+                <Button 
+                  onClick={handleRunCustomReport} disabled={running}
+                  className="bg-[#3B82F6] hover:bg-[#2563EB] text-white text-sm font-semibold px-4 py-1.5 rounded-lg flex items-center gap-2">
+                  {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <span className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-white border-b-[4px] border-b-transparent"></span>}
                   Run Report
                 </Button>
-                <Button variant="outline" className="bg-[#0D0D0D] border-[#2A2A2A] hover:bg-[#1A1A1A] hover:text-white text-[#9CA3AF] text-sm px-4 py-1.5 rounded-lg">
-                  Export: PDF
+                <Button onClick={handleExportCustomPDF} disabled={results.length === 0 || loadingReport === "customPDF"} variant="outline" className="bg-[#0D0D0D] border-[#2A2A2A] hover:bg-[#1A1A1A] hover:text-white text-[#9CA3AF] text-sm px-4 py-1.5 rounded-lg">
+                  {loadingReport === "customPDF" ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <FileText className="w-3.5 h-3.5 mr-1.5" />} Export: PDF
                 </Button>
-                <Button variant="outline" className="bg-[#0D0D0D] border-[#2A2A2A] hover:bg-[#1A1A1A] hover:text-white text-[#9CA3AF] text-sm px-4 py-1.5 rounded-lg">
-                  Export: Excel
+                <Button onClick={handleExportExcel} disabled={results.length === 0} variant="outline" className="bg-[#0D0D0D] border-[#2A2A2A] hover:bg-[#1A1A1A] hover:text-white text-[#9CA3AF] text-sm px-4 py-1.5 rounded-lg">
+                  <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" /> Export: Excel
                 </Button>
-                <Button variant="outline" className="bg-[#0D0D0D] border-[#2A2A2A] hover:bg-[#1A1A1A] hover:text-white text-[#9CA3AF] text-sm px-4 py-1.5 rounded-lg">
-                  Export: CSV
+                <Button onClick={handleExportCSV} disabled={results.length === 0} variant="outline" className="bg-[#0D0D0D] border-[#2A2A2A] hover:bg-[#1A1A1A] hover:text-white text-[#9CA3AF] text-sm px-4 py-1.5 rounded-lg">
+                  <Download className="w-3.5 h-3.5 mr-1.5" /> Export: CSV
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Results Table */}
+          <Card className="bg-[#1A1A1A] border-[#2A2A2A] rounded-xl shadow-xl">
+            <CardHeader className="border-b border-[#2A2A2A]/50 pb-4">
+              <CardTitle className="text-white text-lg">Query Results</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader className="bg-[#111111] border-b border-[#2A2A2A]">
+                  <TableRow className="border-b border-[#2A2A2A] hover:bg-transparent">
+                    <TableHead className="text-white font-medium">Date</TableHead>
+                    <TableHead className="text-white font-medium">Module</TableHead>
+                    <TableHead className="text-white font-medium">Department</TableHead>
+                    <TableHead className="text-white font-medium">Event Title</TableHead>
+                    <TableHead className="text-white font-medium">Details</TableHead>
+                    <TableHead className="text-white font-medium text-right">Value/Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {results.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-12 text-[#9CA3AF]">
+                        No search results found. Choose filters above and click Run Report.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    results.map((row) => (
+                      <TableRow key={row.id} className="border-b border-[#2A2A2A]/50 hover:bg-[#06B6D4]/5">
+                        <TableCell className="font-mono text-xs text-[#9CA3AF]">{new Date(row.date).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Badge className={
+                            row.module === "Environmental" ? "bg-green-500/10 text-green-400 border-green-500/20" :
+                            row.module === "Social" ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
+                            row.module === "Governance" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                            "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                          }>
+                            {row.module}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-semibold text-white">{row.departmentName}</TableCell>
+                        <TableCell className="text-white font-medium text-xs max-w-xs truncate">{row.title}</TableCell>
+                        <TableCell className="text-[#9CA3AF] text-xs max-w-md truncate">{row.details}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-white text-xs">{row.status}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
             </CardContent>
           </Card>
         </div>
